@@ -1,0 +1,40 @@
+@startuml Title: Component Interaction Diagram for DataKeeper
+
+actor User
+
+User --> Client : Initiate Registration(Email, Password)
+Client --> Server : Send Registration Request
+Server --> PostgreSQL : Process Registration
+Server --> Server : Generate OTP
+Server --> PostgreSQL : Store OTP
+Server --> Server : Send OTP To Email
+Server --> User : OTP Email
+
+User --> Client : Enter OTP
+Client --> Server : Verify OTP
+Server --> PostgreSQL : Check OTP
+PostgreSQL --> Server : OTP Valid/Invalid
+Server --> Client : Return Registration Status
+Client --> User : Display Registration Status
+
+User --> Client : Initiate Login(Email, Password)
+Client --> Server : Send Login Request
+Server --> PostgreSQL : Check User Data
+PostgreSQL --> Server : User Valid/Invalid
+Server --> Client : Send Auth Token
+Client --> User : Display Login Success
+
+User --> Client : Add/Update Data
+Client --> Server : Send Data Storage Request
+Server --> MinIO : Save Data
+Server --> MongoDB : Save Metadata
+Server --> Client : Return Storage Status
+Client --> User : Display Storage Status
+
+User --> Client : Request Data
+Client --> Server : Send Data Request
+Server --> MinIO : Get Data
+Server --> MongoDB : Get Metadata
+Server --> Client : Return Data
+Client --> User : Display Data
+@enduml

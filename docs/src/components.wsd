@@ -1,9 +1,37 @@
-@startuml  Title: Component Diagram for Data Storage System
+@startuml  Title: Component Diagram for DataKeeper
 
-Client --> Server : Requests authentication
-Server --> Client : Return authentication token
-Client --> Server : Requests data
-Server --> Server : Encrypt/Decrypt data
-Server --> DataStorage : Retrieve/Storage data
-Client <--> Server : Sync data
-Server --> Client : Provide data
+package "Client" {
+    [CLI Application] - [TUI Interface]
+    [CLI Application] --> [gRPC Client]
+}
+
+package "Database" {
+    [PostgreSQL] 
+    [MinIO] 
+    [MongoDB] 
+}
+
+package "Server" {
+    
+    [gRPC Server] - [User Service]
+    [gRPC Server] - [Data Storage Service]
+    [gRPC Server] - [Data Sync Service]
+
+    [User Service] --> [User Registration Service]
+    [User Service] --> [User Authentication Service]
+    [User Service] --> [OTP Service]
+
+    [User Authentication Service] - [Data Storage Service]
+
+    [OTP Service] --> [OTP Generator]
+    [OTP Service] --> [Email Service]
+
+}
+
+
+[gRPC Client] --> [gRPC Server] : "gRPC Streams"
+[OTP Service] --> [PostgreSQL] : "Store OTP"
+[Email Service] --> [SMTP Server] : "Send OTP"
+[Data Storage Service] --> [MinIO] : "Send BigData"
+[Data Storage Service] --> [MongoDB] : "Send MetaData"
+[User Service] --> [PostgreSQL] : "Send AuthData"

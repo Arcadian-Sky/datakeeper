@@ -1,0 +1,9 @@
+@startuml  Title: Component Diagram for Data Storage System
+
+Client --> Server : Requests authentication
+Server --> Client : Return authentication token
+Client --> Server : Requests data
+Server --> Server : Encrypt/Decrypt data
+Server --> DataStorage : Retrieve/Storage data
+Client <--> Server : Sync data
+Server --> Client : Provide data

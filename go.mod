@@ -51,12 +51,10 @@ require (
 )
 
 require (
-	github.com/gdamore/tcell v1.4.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/minio/minio-go/v7 v7.0.76
-	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.21.1
 	github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
 	golang.org/x/sys v0.24.0 // indirect

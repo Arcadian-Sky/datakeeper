@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - dev
 
 jobs:
 
@@ -16,7 +17,6 @@ jobs:
         uses: actions/checkout@v2
       - name: "Build"
         uses: actions/upload-artifact@v4
-        if: always()
         run: |
           mkdir -p ./bin/linux
           mkdir -p ./bin/win

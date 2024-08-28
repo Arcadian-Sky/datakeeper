@@ -71,10 +71,7 @@ func getUnaryClientInterceptor(mstorage *MemStorage) grpc.UnaryClientInterceptor
 	}
 }
 
-// // Регистрация нового пользователя.
-// Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
-// // Аутентификация пользователя.
-// Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...grpc.CallOption) (*AuthenticateResponse, error)
+// Регистрация нового пользователя.
 func (gc *GRPCClient) Register(login, password string) error {
 
 	if gc.User == nil {
@@ -107,6 +104,7 @@ func (gc *GRPCClient) Register(login, password string) error {
 	return nil
 }
 
+// Аутентификация пользователя.
 func (gc *GRPCClient) Authenticate(login, password string) error {
 	if gc.User == nil {
 		return fmt.Errorf("GRPC client is not initialized")
@@ -141,6 +139,7 @@ func (gc *GRPCClient) Authenticate(login, password string) error {
 	return nil
 }
 
+// Получение списка файлов
 func (gc *GRPCClient) GetFileList() ([]model.FileItem, error) {
 	var data []model.FileItem
 	if gc.Data == nil {
@@ -168,6 +167,7 @@ func (gc *GRPCClient) GetFileList() ([]model.FileItem, error) {
 	return data, nil
 }
 
+// Удаление файла
 func (gc *GRPCClient) DeleteFile(fileName string) error {
 	if gc.Data == nil {
 		return fmt.Errorf("GRPC client is not initialized")
@@ -191,6 +191,6 @@ func (gc *GRPCClient) DeleteFile(fileName string) error {
 }
 
 // Отправка файлов на сервер
-func (gc *GRPCClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[pbsrv.FileChunk, pbsrv.UploadStatus], error) {
+func (gc *GRPCClient) UploadFile(ctx context.Context) (grpc.ClientStreamingClient[pbsrv.FileChunk, pbsrv.UploadStatus], error) {
 	return nil, nil
 }

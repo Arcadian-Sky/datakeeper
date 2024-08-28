@@ -8,6 +8,7 @@ import (
 
 	pbsrv "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/service/v1"
 	pb "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/user/v1"
+	"github.com/Arcadian-Sky/datakkeeper/internal/model"
 	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -68,22 +69,6 @@ func getUnaryClientInterceptor(mstorage *MemStorage) grpc.UnaryClientInterceptor
 
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
-}
-
-// 	// Хранение новых данных на сервере (кроме файлов)
-// AddData(ctx context.Context, in *AddDataRequest, opts ...grpc.CallOption) (*AddDataResponse, error)
-// // Запрос данных с сервера
-// GetData(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GetDataRequest, GetDataResponse], error)
-// ListData(ctx context.Context, in *ListDataRequest, opts ...grpc.CallOption) (*ListDataResponse, error)
-// DeleteData(ctx context.Context, in *DeleteDataRequest, opts ...grpc.CallOption) (*DeleteDataResponse, error)
-
-// Отправка файлов на сервер
-func (gc *GRPCClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[pbsrv.FileChunk, pbsrv.UploadStatus], error) {
-	return nil, nil
-}
-
-func (gc *GRPCClient) DeleteFile(ctx context.Context, in *pbsrv.DeleteFileRequest) (*pbsrv.UploadStatus, error) {
-	return nil, nil
 }
 
 // // Регистрация нового пользователя.
@@ -156,9 +141,10 @@ func (gc *GRPCClient) Authenticate(login, password string) error {
 	return nil
 }
 
-func (gc *GRPCClient) GetFileList() error {
+func (gc *GRPCClient) GetFileList() ([]model.FileItem, error) {
+	var data []model.FileItem
 	if gc.Data == nil {
-		return fmt.Errorf("GRPC client is not initialized")
+		return data, fmt.Errorf("GRPC client is not initialized")
 	}
 
 	// Создаем контекст с таймаутом для запроса
@@ -169,9 +155,42 @@ func (gc *GRPCClient) GetFileList() error {
 	res, err := gc.Data.GetFileList(ctx, req)
 	if err != nil {
 		gc.log.Debug("Error during get list of files : ", err)
+		return data, err
+	}
+	gc.log.Trace(res)
+	for _, item := range res.FileItem {
+		data = append(data, model.FileItem{
+			Hash: item.Key,
+			Name: item.Name,
+		})
+	}
+
+	return data, nil
+}
+
+func (gc *GRPCClient) DeleteFile(fileName string) error {
+	if gc.Data == nil {
+		return fmt.Errorf("GRPC client is not initialized")
+	}
+
+	// Создаем контекст с таймаутом для запроса
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req := &pbsrv.DeleteFileRequest{
+		FileName: fileName,
+	}
+	// Отправляем запрос на сервер
+	res, err := gc.Data.DeleteFile(ctx, req)
+	if err != nil {
+		gc.log.Debug("Error during delete file : ", err)
 		return err
 	}
-	gc.log.Info(res)
+	gc.log.Trace(res)
 
 	return nil
+}
+
+// Отправка файлов на сервер
+func (gc *GRPCClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[pbsrv.FileChunk, pbsrv.UploadStatus], error) {
+	return nil, nil
 }

@@ -32,6 +32,11 @@ message DataItem {
   int64 ID = 2;
 }
 
+message FileItem {
+  string name = 1;
+  string key = 2;
+}
+
 // Сообщение, представляющее собой часть файла
 message FileChunk {
   bytes content = 1;  // Содержимое файла
@@ -44,7 +49,7 @@ message UploadStatus {
 }
 // Команда удаления файла
 message DeleteFileRequest {
-  string title = 1;
+  string fileName = 1;
 }
 
 // Добавление
@@ -62,7 +67,7 @@ message DeleteDataRequest {int64 dataID = 1;}
 message DeleteDataResponse {string response = 1;}
 
 message ListFileRequest {}
-message ListFileResponse {repeated DataItem dataItem = 1;}
+message ListFileResponse {repeated FileItem fileItem = 1;}
 
 // Определение gRPC-сервиса для управления данными
 service DataKeeperService {  

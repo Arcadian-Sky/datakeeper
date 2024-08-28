@@ -208,11 +208,28 @@ func (s *GRPCServer) UploadFile(in grpc.ClientStreamingServer[pbservice.FileChun
 }
 
 func (s *GRPCServer) GetFileList(ctx context.Context, in *pbservice.ListFileRequest) (*pbservice.ListFileResponse, error) {
-	uID := jwtrule.SetUserIDFromCTX(ctx)
-	s.log.Info(uID)
+	uID := jwtrule.GetUserIDFromCTX(ctx)
+	s.log.Trace("uID: ", uID)
 
-	// user, err := s.reposervice.GetFileList(ctx, user)
-	return nil, nil
+	user := &model.User{
+		ID: uID,
+	}
+
+	var data []model.FileItem
+	data, err := s.reposervice.GetFileList(ctx, user)
+	if err != nil {
+		s.log.Println(err)
+		return nil, status.Error(codes.Internal, "failed to get user files")
+	}
+	var resp []*pbservice.FileItem
+	for _, it := range data {
+		resp = append(resp, &pbservice.FileItem{
+			Key:  it.Hash,
+			Name: it.Name,
+		})
+	}
+
+	return &pbservice.ListFileResponse{FileItem: resp}, nil
 }
 
 // func (s *GRPCServer) UpdateData(grpc.BidiStreamingServer[pbservice.UpdateDataRequest, pbservice.UpdateDataResponse]) error {
@@ -334,20 +351,21 @@ func (s *GRPCServer) ListData(ctx context.Context, in *pbservice.ListDataRequest
 	return &pbservice.ListDataResponse{DataItem: nil}, nil
 
 }
-func (s *GRPCServer) DeleteData(ctx context.Context, in *pbservice.DeleteDataRequest) (*pbservice.DeleteDataResponse, error) {
-	// userID, err := s.getUserID(ctx)
-	// if err != nil {
-	// 	e := fmt.Sprintf("failed to get userid: %s", err.Error())
-	// 	return nil, status.Errorf(getCode(err), e)
-	// }
+func (s *GRPCServer) DeleteFile(ctx context.Context, in *pbservice.DeleteFileRequest) (*pbservice.UploadStatus, error) {
+	uID := jwtrule.GetUserIDFromCTX(ctx)
+	s.log.Trace("uID: ", uID)
+	user := model.User{
+		ID: uID,
+	}
 
-	// err = s.repo.Delete(ctx, userID, in.DataID)
-	// if err != nil {
-	// 	e := fmt.Sprintf("failed to delete pdata: %s", err.Error())
-	// 	return nil, status.Errorf(getCode(err), e)
-	// }
-	// return &pb.DeleteDataResponse{Response: "data was deleted"}, nil
-	return &pbservice.DeleteDataResponse{Response: "data was deleted"}, nil
+	err := s.reposervice.DeleteFile(ctx, in.FileName, &user)
+	if err != nil {
+		e := fmt.Sprintf("failed to delete file: %v", err)
+		s.log.Info(e)
+		return nil, status.Errorf(getCode(err), e)
+	}
+
+	return &pbservice.UploadStatus{Success: true, Message: "data was deleted"}, nil
 }
 
 func (s *GRPCServer) getUserID(ctx context.Context) (int64, error) {

@@ -108,6 +108,17 @@
         }
       }
     },
+    "v1FileItem": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      }
+    },
     "v1GetDataResponse": {
       "type": "object",
       "properties": {
@@ -132,11 +143,11 @@
     "v1ListFileResponse": {
       "type": "object",
       "properties": {
-        "dataItem": {
+        "fileItem": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1DataItem"
+            "$ref": "#/definitions/v1FileItem"
           }
         }
       }

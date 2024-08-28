@@ -67,3 +67,8 @@ type Data struct {
 	KeyHash     string
 	PrivateData string
 }
+type FileItem struct {
+	Hash string
+	Name string
+	Desc string
+}

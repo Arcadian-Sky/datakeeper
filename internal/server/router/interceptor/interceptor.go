@@ -45,10 +45,9 @@ func AuthCheckGRPC(log *logrus.Logger, secretKey string) grpc.UnaryServerInterce
 		}
 
 		log.Trace("--> unary interceptor: check")
-		log.Debug("token: ", token)
-		log.Debug(jwtrule.Validate(token, secretKey))
 		jwToken, err := jwtrule.Validate(token, secretKey)
 		if err != nil {
+			log.Trace("invalid auth token: ", err)
 			return nil, status.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
 		}
 		log.Trace("--> unary interceptor UID: ", jwToken.Claims.UserID)

@@ -13,7 +13,8 @@ import (
 
 type FileRepository interface {
 	Get(ctx context.Context, userID int64, data model.Data) (int64, error)
-	GetFileList(ctx context.Context, user *model.User) ([]minio.ObjectInfo, error)
+	GetFileList(ctx context.Context, user *model.User) ([]model.FileItem, error)
+	DeleteFile(ctx context.Context, fileId string, user *model.User) error
 	Save(ctx context.Context, user model.User, data model.Data) (int64, error)
 	CreateContainer(ctx context.Context, user *model.User) (model.User, error)
 }
@@ -71,7 +72,20 @@ func (f *FileRepo) Get(ctx context.Context, userID int64, data model.Data) (int6
 	return 1, nil
 }
 
-func (f *FileRepo) GetFileList(ctx context.Context, user *model.User) ([]minio.ObjectInfo, error) {
+func (f *FileRepo) DeleteFile(ctx context.Context, fileName string, user *model.User) error {
+	bucketName := "bucketuid" + strconv.Itoa(int(user.ID))
+
+	err := f.db.RemoveObject(ctx, bucketName, fileName, minio.RemoveObjectOptions{
+		ForceDelete: true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete bucket: %w", err)
+	}
+
+	return nil
+}
+
+func (f *FileRepo) GetFileList(ctx context.Context, user *model.User) ([]model.FileItem, error) {
 	if user.ID == 0 {
 		return nil, model.ErrCreateBucketNoUser
 	}
@@ -83,13 +97,16 @@ func (f *FileRepo) GetFileList(ctx context.Context, user *model.User) ([]minio.O
 		Recursive: true,
 	})
 
-	var objects []minio.ObjectInfo
+	var objects []model.FileItem
 	for object := range objectCh {
 		if object.Err != nil {
 			fmt.Println(object.Err)
 			continue
 		}
-		objects = append(objects, object)
+		objects = append(objects, model.FileItem{
+			Hash: object.ETag,
+			Name: object.Key,
+		})
 	}
 
 	f.log.Info(objects)

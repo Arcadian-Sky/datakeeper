@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/client"
+	"github.com/Arcadian-Sky/datakkeeper/internal/model"
 	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/rivo/tview"
 	"github.com/sirupsen/logrus"
@@ -158,6 +158,7 @@ func (app *App) initDataInterfaces() {
 		}
 	})
 	app.data.list.AddItem("Load Data", "", 'f', func() {
+		app.logView.Clear()
 		app.pages.SwitchToPage("datalist")
 		// err := loadData()
 		// if err != nil {
@@ -356,31 +357,11 @@ func (app *App) uploadFile(filePath string) error {
 	return nil
 }
 
-type Item struct {
-	ID   int64
-	Name string
-	Desc string
-}
-
+// Вызов клиента для получения данных
 func (app *App) loadData() error {
-	// Вызов клиента для получения данных
-
-	err := app.client.GetFileList()
+	data, err := app.client.GetFileList()
 	if err != nil {
 		return fmt.Errorf("error creating stream: %v", err)
-	}
-
-	data := []Item{
-		{ID: 1, Name: "Item 1"},
-		{ID: 2, Name: "Item 2"},
-		{ID: 3, Name: "Item 3"},
-		{ID: 4, Name: "Item 4"},
-		{ID: 54, Name: "Item 54"},
-		{ID: 64, Name: "Item 64"},
-		{ID: 674, Name: "Item 674"},
-		{ID: 34, Name: "Item 34"},
-		{ID: 84, Name: "Item 84"},
-		{ID: 49, Name: "Item 84"},
 	}
 
 	// Обновление интерфейса на основе полученных данных
@@ -388,19 +369,21 @@ func (app *App) loadData() error {
 	return nil
 }
 
-func (app *App) updateDatalistPage(data []Item) {
+func (app *App) updateDatalistPage(data []model.FileItem) {
 
 	list := tview.NewList()
 	// Создание кнопки "Назад"
 	list.AddItem("Назад", "", 'q', func() {
+		app.logView.Clear()
 		app.pages.SwitchToPage("datalist")
 	})
 
 	// Заполнение таблицы данными
 	for _, item := range data {
 		list.AddItem(item.Name, item.Desc, 0, func() {
+			app.logView.Clear()
 			// Переход к форме с действиями
-			app.createMoveForm(int(item.ID), item.Name, item.Desc)
+			app.createMoveForm(item.Hash, item.Name, item.Desc)
 		})
 
 	}
@@ -411,21 +394,29 @@ func (app *App) updateDatalistPage(data []Item) {
 }
 
 // createActionForm создает форму с действиями, используя переданный ID
-
-func (app *App) createMoveForm(id int, name, desc string) {
+func (app *App) createMoveForm(id string, name, desc string) {
 	// Создаем форму с действиями
-	actionForm := tview.NewForm().
-		AddTextView("ID", strconv.Itoa(id), 0, 1, false, false). // Показываем ID
-		AddTextView("Name", name, 0, 1, false, false).           // Показываем имя
-		AddTextView("Description", desc, 0, 1, false, false).    // Показываем описание
+	actionForm := tview.NewForm()
+	actionForm.
+		AddTextView("ID", id, 0, 1, false, false).            // Показываем ID
+		AddTextView("Name", name, 0, 1, false, false).        // Показываем имя
+		AddTextView("Description", desc, 0, 1, false, false). // Показываем описание
 		AddButton("Назад", func() {
+			app.logView.Clear()
 			app.pages.SwitchToPage("datalist") // Возвращаемся к списку
 		}).
 		AddButton("Получить", func() {
-			fmt.Printf("Получить нажато для ID: %d\n", id)
+			app.logView.Clear()
+			fmt.Printf("Получить нажато для ID: %v\n", id)
 		}).
 		AddButton("Удалить", func() {
-			fmt.Printf("Удалить нажато для ID: %d\n", id)
+			app.logView.Clear()
+			err := app.client.DeleteFile(name)
+			if err != nil {
+				app.log.Info("Error client Authentificate: ", err)
+				return
+			}
+			fmt.Printf("Удалить нажато для ID: %v\n", id)
 		})
 
 	// Устанавливаем форму как корневой элемент интерфейса

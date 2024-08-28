@@ -3,7 +3,6 @@ package jwtrule
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/model"
@@ -41,6 +40,7 @@ func Validate(tokenString string, key string) (model.Jtoken, error) {
 			Exp:    int64(claimsMap["exp"].(float64)),
 		}
 		jtoken := model.Jtoken{Token: tokenString, Claims: claims}
+
 		return jtoken, nil
 	}
 
@@ -48,25 +48,15 @@ func Validate(tokenString string, key string) (model.Jtoken, error) {
 
 }
 
-type ctxkey string
-
-var (
-	userID ctxkey = "userID"
-)
-
 // SetUserIDToCTX add userID to the context.
 func SetUserIDToCTX(ctx context.Context, value int) context.Context {
-	return context.WithValue(ctx, userID, value)
+	return context.WithValue(ctx, "userID", value)
 }
 
-func SetUserIDFromCTX(ctx context.Context) int64 {
-	// Получаем значение из контекста
-	if strUserID, ok := ctx.Value(userID).(string); ok {
-		// Преобразуем строку в int64
-		userID, err := strconv.ParseInt(strUserID, 10, 64)
-		if err != nil {
-			return userID
-		}
+// Получаем значение из контекста
+func GetUserIDFromCTX(ctx context.Context) int64 {
+	if iUserID, ok := ctx.Value("userID").(int); ok {
+		return int64(iUserID)
 	}
-	return 0
+	return -1
 }

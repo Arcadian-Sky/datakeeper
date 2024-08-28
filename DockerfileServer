@@ -1,0 +1,42 @@
+# Dockerfile for /cmd/dataserver/dataserver_linux_amd64
+FROM golang:1.22 as build
+
+ARG GITHUB_PATH=github
+# ARG DATABASE_URI
+# ARG DATAKEEPER_SERVER_ADDRESS
+RUN echo "$DATABASE_URI"
+RUN echo "$DATAKEEPER_SERVER_ADDRESS"
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Копируем go.mod и go.sum
+COPY go.mod go.sum ./
+COPY .env ./
+COPY internal ./internal
+COPY cmd ./cmd
+COPY docs ./docs
+COPY gen ./gen
+COPY migrations ./migrations
+
+ENV DATABASE_URI ${DATABASE_URI}
+ENV RUN_ADDRESS_ACCUR=${DATAKEEPER_SERVER_ADDRESS}
+
+RUN go mod download
+
+RUN go build -o . /app/cmd/server/.
+
+# RUN protoc --go_out=. --go-grpc_out=. proto/example.proto
+# RUN go build -o . /app/cmd/server/.
+
+LABEL type="server"
+
+CMD ["/app/server", ""]
+
+# RUN apk --no-cache add ca-certificates
+
+# WORKDIR /root/
+
+# COPY cmd/dataserver/dataserver_linux_amd64 ./accrual
+
+# ENTRYPOINT ./dataserver -d=${DATABASE_URI} -a=:8020

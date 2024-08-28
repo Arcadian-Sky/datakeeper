@@ -1,0 +1,39 @@
+name: datakeeper
+networks:
+  datakeeper-network:
+    driver: bridge
+
+version: '2.1'
+services:
+  server:
+    restart: on-failure
+    build:
+      context: ../
+      dockerfile: DockerfileServer
+    ports:
+      - "${APP_SERVER_PORT}:${APP_SERVER_PORT}"
+    environment:
+      - PG_DATABASE_URI=${PG_DATABASE_URI:?Please configure PG_DATABASE_URI in the .env file}
+      - DATAKEEPER_RUN_ADDRESS=${DATAKEEPER_RUN_ADDRESS:?Please configure DATAKEEPER_RUN_ADDRESS in the .env file}
+      - DATAKEEPER_SERVER_ADDRESS=${DATAKEEPER_SERVER_ADDRESS:?Please configure DATAKEEPER_SERVER_ADDRESS in the .env file}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - datakeeper-network
+  # client:
+  #   restart: on-failure
+  #   build:
+  #     context: ../
+  #     dockerfile: DockerfileClient
+  #   ports:
+  #     - "${APP_ACCUR_PORT}:${APP_ACCUR_PORT}"
+  #   environment:
+  #     - APP_ACCUR_PORT=${APP_ACCUR_PORT:?Please configure APP_ACCUR_PORT in the .env file}
+  #     - BUILD_DATABASE_URI=${BUILD_DATABASE_URI:?Please configure BUILD_DATABASE_URI in the .env file}
+  #     - BUILD_ADDRESS_ACCUR=${BUILD_ADDRESS_ACCUR:?Please configure BUILD_ADDRESS_ACCUR in the .env file}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - datakeeper-network

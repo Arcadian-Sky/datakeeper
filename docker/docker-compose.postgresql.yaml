@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "pg_isready", "--quiet", "--dbname", "${POSTGRES_DB}", "--username", "${POSTGRES_USER}" ]
+      start_period: 10s
+      interval: 10s
+      timeout: 45s
+      retries: 10
+    logging:
+      driver: 'gelf'
+      options:
+        gelf-address: 'udp://localhost:12201'
+        tag: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Please configure POSTGRES_USER in the .env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Please configure POSTGRES_PASSWORD in the .env file}
+      POSTGRES_DB: ${POSTGRES_DB:?Please configure POSTGRES_DB in the .env file}
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:?Please configure POSTGRES_APP_USER in the .env file}
+      POSTGRES_APP_PASS: ${POSTGRES_APP_PASS:?Please configure POSTGRES_APP_PASS in the .env file}
+      POSTGRES_APP_DB: ${POSTGRES_APP_DB:?Please configure POSTGRES_APP_DB in the .env file}
+    volumes:
+      - ./etc/postgres/init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
+      - ./volume/postgresql:/var/lib/postgresql/data
+    ports:
+      - 13000:5432
+    networks:
+      - datakeeper-network
+
+  pgadmin:
+    image: dpage/pgadmin4:8.5
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-O", "-", "http://localhost:80/misc/ping" ]
+      start_period: 10s
+      interval: 10s
+      timeout: 45s
+      retries: 10
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:?Please configure PGADMIN_DEFAULT_EMAIL in the .env file}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_EMAIL:?Please configure PGADMIN_DEFAULT_EMAIL in the .env file}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - ./etc/pgadmin4/servers.json:/pgadmin4/servers.json
+      - ./volume/pgadmin:/var/lib/pgadmin
+    ports:
+      - ${PGADMIN_PORT:-7080}:80
+    networks:
+      - datakeeper-network

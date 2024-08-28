@@ -1,0 +1,30 @@
+name: build binarys
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  devopstest:
+    runs-on: ubuntu-latest
+    container: golang:1.22
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: "Build"
+        if: always()
+        run: |
+          mkdir -p ../bin/linux
+          mkdir -p ../bin/win
+          mkdir -p ../bin/mac
+          # build linux
+          go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ../bin/linux/datakeeper cmd/client/main.go
+          go build -o ../bin/linux/datakeeper-server cmd/server/main.go
+          # build windows
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ../bin/win/datakeeper.exe cmd/client/main.go
+          # build mac amd64
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ../bin/mac/datakeeper cmd/client/main.go

@@ -1,4 +1,4 @@
-@startuml  Title: Component Diagram for DataKeeper
+@startuml Component Diagram for DataKeeper
 
 package "Client" {
     [CLI Application] - [TUI Interface]

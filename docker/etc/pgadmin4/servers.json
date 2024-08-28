@@ -1,0 +1,13 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "DataKeeper Database",
+            "Group": "Servers",
+            "Host": "postgres",
+            "Port": 5432,
+            "MaintenanceDB": "dbdatakeeper",
+            "Username": "userdatakeeper",
+            "SSLMode": "prefer"
+        }
+    }
+}

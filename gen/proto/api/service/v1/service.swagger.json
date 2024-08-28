@@ -1,0 +1,157 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "proto/api/service/v1/service.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "DataKeeperService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1AddDataResponse": {
+      "type": "object",
+      "properties": {
+        "response": {
+          "type": "string"
+        }
+      }
+    },
+    "v1Data": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/v1DataType"
+        },
+        "data": {
+          "type": "string",
+          "format": "byte"
+        },
+        "keyHash": {
+          "type": "string",
+          "format": "byte"
+        },
+        "ID": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1DataItem": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ID": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1DataType": {
+      "type": "string",
+      "enum": [
+        "DATA_TYPE_UNSPECIFIED",
+        "DATA_TYPE_TYPE_BINARY",
+        "DATA_TYPE_TYPE_LOGIN_PASSWORD",
+        "DATA_TYPE_TYPE_CREDIT_CARD"
+      ],
+      "default": "DATA_TYPE_UNSPECIFIED",
+      "description": "- DATA_TYPE_UNSPECIFIED: Произвольные текстовые данные\n - DATA_TYPE_TYPE_BINARY: Произвольные бинарные данные\n - DATA_TYPE_TYPE_LOGIN_PASSWORD: Пары логин/пароль\n - DATA_TYPE_TYPE_CREDIT_CARD: Данные банковских карт",
+      "title": "Enum для описания типов данных"
+    },
+    "v1DeleteDataResponse": {
+      "type": "object",
+      "properties": {
+        "response": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetDataResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/v1Data"
+        }
+      }
+    },
+    "v1ListDataResponse": {
+      "type": "object",
+      "properties": {
+        "dataItem": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1DataItem"
+          }
+        }
+      },
+      "title": "Список"
+    },
+    "v1ListFileResponse": {
+      "type": "object",
+      "properties": {
+        "dataItem": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1DataItem"
+          }
+        }
+      }
+    },
+    "v1UploadStatus": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "Статус загрузки"
+    }
+  }
+}

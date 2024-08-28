@@ -1,0 +1,10 @@
+coverage:
+  round: down
+  range: 55..100
+  precision: 2
+  status:
+    patch: no
+  ignore:
+  - 'gen/**'
+  - "**/*.pb.go"
+  - "**/*.pb.validate.go"

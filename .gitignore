@@ -16,6 +16,7 @@
 /gen/proto/*.go
 
 ### Go Patch ###
+/docker/volume/
 /vendor/
 /Godeps/
 

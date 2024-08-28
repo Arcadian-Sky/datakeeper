@@ -1,40 +1,66 @@
-@startuml Title: Component Interaction Diagram for DataKeeper
+@startuml Component Interaction Diagram for DataKeeper
 
 actor User
 
-User --> Client : Initiate Registration(Email, Password)
-Client --> Server : Send Registration Request
-Server --> PostgreSQL : Process Registration
-Server --> Server : Generate OTP
-Server --> PostgreSQL : Store OTP
-Server --> Server : Send OTP To Email
-Server --> User : OTP Email
+User --> Client : Инициировать регистрацию (Email, Password)
+Client --> Server : Запрос на регистрацию
+alt Успешная регистрация
+    Server --> Server : Обработать регистрацию
+    Server --> Server : Сгенерировать OTP
+    Server --> PostgreSQL : Сохранить OTP
+    Server --> Server : Отправить OTP на Email
+    Server --> User : OTP по Email
+else Ошибка регистрации
+    Server --> Client : Вернуть ошибку
+    Client --> User : Показать ошибку
+end
 
-User --> Client : Enter OTP
-Client --> Server : Verify OTP
-Server --> PostgreSQL : Check OTP
-PostgreSQL --> Server : OTP Valid/Invalid
-Server --> Client : Return Registration Status
-Client --> User : Display Registration Status
+User --> Client : Ввести OTP
+Client --> Server : Проверка OTP
+alt OTP действителен
+    Server --> PostgreSQL : Проверить OTP
+    PostgreSQL --> Server : OTP действителен
+    Server --> Client : Вернуть статус регистрации
+    Client --> User : Показать статус регистрации
+else OTP недействителен
+    Server --> Client : Вернуть ошибку
+    Client --> User : Показать ошибку
+end
 
-User --> Client : Initiate Login(Email, Password)
-Client --> Server : Send Login Request
-Server --> PostgreSQL : Check User Data
-PostgreSQL --> Server : User Valid/Invalid
-Server --> Client : Send Auth Token
-Client --> User : Display Login Success
+User --> Client : Инициировать вход (Email, Password)
+Client --> Server : Запрос на вход
+Server --> PostgreSQL : Проверка данных пользователя
+alt Данные корректны
+    PostgreSQL --> Server : Данные корректны
+    Server --> Client : Отправить токен аутентификации
+    Client --> User : Показать успешный вход
+else Данные некорректны
+    PostgreSQL --> Server : Данные некорректны
+    Server --> Client : Вернуть ошибку
+    Client --> User : Показать ошибку
+end
 
-User --> Client : Add/Update Data
-Client --> Server : Send Data Storage Request
-Server --> MinIO : Save Data
-Server --> MongoDB : Save Metadata
-Server --> Client : Return Storage Status
-Client --> User : Display Storage Status
+User --> Client : Добавить/Обновить данные
+Client --> Server : Запрос на хранение данных
+Server --> MinIO : Сохранить данные
+Server --> MongoDB : Сохранить метаинформацию
+alt Успешное сохранение
+    Server --> Client : Вернуть статус хранения
+    Client --> User : Показать статус хранения
+else Ошибка сохранения
+    Server --> Client : Вернуть ошибку
+    Client --> User : Показать ошибку
+end
 
-User --> Client : Request Data
-Client --> Server : Send Data Request
-Server --> MinIO : Get Data
-Server --> MongoDB : Get Metadata
-Server --> Client : Return Data
-Client --> User : Display Data
+User --> Client : Запросить данные
+Client --> Server : Запрос на получение данных
+Server --> MinIO : Получить данные
+Server --> MongoDB : Получить метаинформацию
+alt Успешное извлечение
+    Server --> Client : Вернуть данные
+    Client --> User : Показать данные
+else Ошибка извлечения
+    Server --> Client : Вернуть ошибку
+    Client --> User : Показать ошибку
+end
 @enduml

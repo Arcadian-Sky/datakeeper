@@ -1,0 +1,10 @@
+services:
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "19090:9090"
+    networks:
+      - datakeeper-network

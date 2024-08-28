@@ -1,0 +1,43 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "${MONGO_INITDB_PORT:?Please configure MONGO_INITDB_PORT in the .env file}:${MONGO_INITDB_PORT:?Please configure MONGO_INITDB_PORT in the .env file}"
+    volumes:
+      - ./etc/mongodb/init-database.js:/docker-entrypoint-initdb.d/init-database.js
+      - ./volume/mongodb:/var/lib/mongodb
+    networks:
+      - datakeeper-network
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:?Please configure MONGO_INITDB_ROOT_USERNAME in the .env file}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:?Please configure MONGO_INITDB_ROOT_PASSWORD in the .env file}
+      - MONGO_INITDB_PORT=${MONGO_INITDB_PORT:?Please configure MONGO_INITDB_PORT in the .env file}
+      - MONGO_INITDB_DATABASE=${MONGO_APP_DB:?Please configure MONGO_APP_DB in the .env file}
+
+      - MONGO_APP_USER=${MONGO_APP_USER:?Please configure MONGO_APP_USER in the .env file}
+      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:?Please configure MONGO_APP_PASSWORD in the .env file}
+      - MONGO_APP_DB=${MONGO_APP_DB:?Please configure MONGO_APP_DB in the .env file}
+
+# healthcheck:
+#   test: "echo 'db.runCommand(\"ping\").ok' | mongo localhost:${MONGO_INITDB_PORT}/${MONGO_APP_DB} --quiet"
+#   interval: 30s # How often to perform the check
+#   timeout: 10s # Time after which the check is considered to have failed
+#   retries: 5 # How many consecutive failures indicate an unhealthy container
+#   start_period: 10s # Time to wait before starting the checks (useful for slow-starting services)
+
+# mongo-express:
+#   image: mongo-express:latest
+#   container_name: mongo-express
+#   restart: always
+#   ports:
+#     - 8081:8081
+#   environment:
+#     ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME:?Please configure MONGO_INITDB_ROOT_USERNAME in the .env file}
+#     ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?Please configure MONGO_INITDB_ROOT_PASSWORD in the .env file}
+#     ME_CONFIG_MONGODB_SERVER: mongodb
+#     ME_CONFIG_BASICAUTH: false
+#     ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:${MONGO_INITDB_PORT}
+
+#   networks:
+#     - datakeeper-network

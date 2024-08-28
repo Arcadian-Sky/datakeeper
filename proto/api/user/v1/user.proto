@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package proto.api.user.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "internal/service/user";
+
+// Определение сервиса для взаимодействия между клиентом и сервером.
+service UserService {
+  // Регистрация нового пользователя.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // Аутентификация пользователя.
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+
+  // // Запрос метаданных пользователя.
+  // rpc GetMetadata(GetMetadataRequest) returns (GetMetadataResponse);
+
+  // // Создание нового сеанса.
+  // rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+
+  // // Завершение сеанса.
+  // rpc EndSession(EndSessionRequest) returns (EndSessionResponse);
+}
+
+// Запрос на регистрацию нового пользователя.
+message RegisterRequest {
+  string login = 1;
+  string password = 2;
+}
+
+// Ответ на запрос регистрации нового пользователя.
+message RegisterResponse {
+  bool success = 1;
+  string message = 2; // Сообщение о статусе регистрации.
+  string auth_token = 3; // Токен аутентификации.
+}
+
+// Запрос на аутентификацию пользователя.
+message AuthenticateRequest {
+  string login = 1;
+  string password = 2;
+}
+
+// Ответ на запрос аутентификации пользователя.
+message AuthenticateResponse {
+  bool success = 1;
+  string auth_token = 2; // Токен аутентификации.
+  string message = 3; // Сообщение о статусе аутентификации.
+}
+
+// Запрос на получение метаданных пользователя.
+message GetMetadataRequest {
+  string auth_token = 1; // Токен аутентификации.
+}
+
+// Ответ на запрос получения метаданных.
+message GetMetadataResponse {
+  repeated Metadata metadata = 1;
+}
+
+// Запрос на создание нового сеанса.
+message CreateSessionRequest {
+  string auth_token = 1; // Токен аутентификации.
+  string device_info = 2; // Информация об устройстве.
+}
+
+// Ответ на запрос создания нового сеанса.
+message CreateSessionResponse {
+  bool success = 1;
+  string session_id = 2; // Идентификатор нового сеанса.
+  string message = 3; // Сообщение о статусе создания сеанса.
+}
+
+// Запрос на завершение сеанса.
+message EndSessionRequest {
+  string session_id = 1; // Идентификатор сеанса.
+}
+
+// Ответ на запрос завершения сеанса.
+message EndSessionResponse {
+  bool success = 1;
+  string message = 2; // Сообщение о статусе завершения сеанса.
+}
+
+// Сообщение для метаданных.
+message Metadata {
+  string metadata_id = 1;
+  string metadata_key = 2;
+  string metadata_value = 3;
+}

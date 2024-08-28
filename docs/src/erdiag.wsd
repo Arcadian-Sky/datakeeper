@@ -1,0 +1,29 @@
+@startuml erdata
+
+entity "User" as user {
+    + UserID : int
+    * Email : string
+    * PasswordHash : string
+    * CreatedAt : datetime
+}
+
+entity "Session" as session {
+    + SessionID : int
+    * UserID : int
+    * AuthToken : string
+    * DeviceInfo : string
+    * CreatedAt : datetime
+    * ExpiryDate : datetime
+}
+
+entity "Metadata" as metadata {
+    + MetadataID : string
+    * UserID : int
+    * MetadataKey : string
+    * MetadataValue : string
+}
+
+' Relationships
+user --{ session : Has >
+user --{ metadata : Has >
+@enduml

@@ -39,10 +39,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        
       - name: Build Windows Binary
         run: |
           mkdir -p ./bin/win
           go build -o ./bin/win/datakeeper.exe ./cmd/client/main.go
+
       - name: Upload Windows Binaries
         uses: actions/upload-artifact@v4
         with:
@@ -51,9 +53,16 @@ jobs:
     
   build-macos:
     runs-on: macos-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
       - name: Build MacOS Binary
         run: |
           mkdir -p ./bin/mac

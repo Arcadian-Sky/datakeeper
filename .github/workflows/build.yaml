@@ -20,8 +20,8 @@ jobs:
         run: |
           apt-get clean
           apt-get update
-          apt-get install -y libgtk-3-0
-          
+          apt-get install -y libgtk-3-0 pkg-config
+
       - name: Check dependencies
         run: |
           pkg-config --list-all | grep gtk+-3.0

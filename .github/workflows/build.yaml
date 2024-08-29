@@ -1,7 +1,6 @@
 name: build binarys
 
 on:
-  pull_request:
   push:
     branches:
       - main
@@ -39,7 +38,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-        
+
       - name: Build Windows Binary
         run: |
           mkdir -p ./bin/win

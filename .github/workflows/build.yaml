@@ -18,11 +18,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          ls -l
           apt-get clean
           apt-get update
           apt-get install -y libgtk-3-0
-          export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/local/lib/pkgconfig
+          
+      - name: Check dependencies
+        run: |
           pkg-config --list-all | grep gtk+-3.0
 
       - name: "Build Linux Binary"

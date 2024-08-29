@@ -16,6 +16,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+        id: install
+
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
       - name: Install dependencies
         run: |
           apt-get clean
@@ -25,15 +33,7 @@ jobs:
       - name: Check dependencies
         run: |
           pkg-config --cflags gtk+-3.0
-
-        id: install
-
-  build-linux:
-    runs-on: ubuntu-latest
-    needs: install-dependencies
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+          
       - name: Build Linux Binary
         run: |
           mkdir -p ./bin/linux

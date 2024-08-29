@@ -19,18 +19,18 @@ jobs:
       - name: "Build Linux Binary"
         run: |
           mkdir -p ./bin/linux
-          go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ./bin/linux/datakeeper ./cmd/client/main.go
+          go build -o ./bin/linux/datakeeper ./cmd/client/main.go
           go build -o ./bin/linux/datakeeper-server ./cmd/server/main.go
 
       - name: "Build Windows Binary"
         run: |
           mkdir -p ./bin/win
-          GOOS=windows GOARCH=amd64 go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ./bin/win/datakeeper.exe ./cmd/client/main.go
+          GOOS=windows GOARCH=amd64 go build -o ./bin/win/datakeeper.exe ./cmd/client/main.go
       
       - name: "Build MacOS Binary"
         run: |
           mkdir -p ./bin/mac
-          GOOS=darwin GOARCH=amd64 go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ./bin/mac/datakeeper ./cmd/client/main.go
+          GOOS=darwin GOARCH=amd64 go build -o ./bin/mac/datakeeper ./cmd/client/main.go
      
       - name: Upload Linux Binary
         uses: actions/upload-artifact@v4

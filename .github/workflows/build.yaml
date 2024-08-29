@@ -19,7 +19,8 @@ jobs:
       - name: Install dependencies
         run: |
           ls -l
-          su -c "apt-get update && apt-get install libgtk-3-dev"
+          export DEBIAN_FRONTEND=noninteractive
+          su -c "apt-get update && apt-get install libgtk-3-0"
           # sudo apt-get update
           # sudo apt-get install -y libgtk-3-0
 

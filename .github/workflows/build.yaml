@@ -8,10 +8,10 @@ on:
       - dev
 
 jobs:
-
-  devopstest:
+  install-dependencies:
     runs-on: ubuntu-latest
-    container: golang:1.22
+    outputs:
+      dependencies-installed: ${{ steps.install.outputs.result }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -26,40 +26,57 @@ jobs:
         run: |
           pkg-config --cflags gtk+-3.0
 
-      - name: "Build Linux Binary"
+        id: install
+
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build Linux Binary
         run: |
           mkdir -p ./bin/linux
-          go build -o ./bin/linux/datakeeper ./cmd/client/main.go
-          go build -o ./bin/linux/datakeeper-server ./cmd/server/main.go
+          go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ./bin/linux/datakeeper cmd/client/main.go
+          go build -o ./bin/linux/datakeeper-server cmd/server/main.go
+      - name: Upload Linux Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: ./bin/linux
 
-      - name: "Build Windows Binary"
+  build-windows:
+    runs-on: windows-latest
+    needs: install-dependencies
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build Windows Binary
         run: |
           mkdir -p ./bin/win
-          GOOS=windows GOARCH=amd64 go build -o ./bin/win/datakeeper.exe ./cmd/client/main.go
-      
-      - name: "Build MacOS Binary"
+          go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ./bin/win/datakeeper.exe cmd/client/main.go
+      - name: Upload Windows Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries
+          path: ./bin/win
+    
+  build-macos:
+    runs-on: macos-latest
+    needs: install-dependencies
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build MacOS Binary
         run: |
           mkdir -p ./bin/mac
-          GOOS=darwin GOARCH=amd64 go build -o ./bin/mac/datakeeper ./cmd/client/main.go
-     
-      - name: Upload Linux Binary
+          go build -ldflags "-X 'github.com/Arcadian-Sky/datakeeper/internal/cli.BuildTime=$(date +'%Y-%m-%d %H:%M')'" -o ./bin/mac/datakeeper cmd/client/main.go
+      - name: Upload MacOS Binaries
         uses: actions/upload-artifact@v4
         with:
-          name: datakeeper-linux
-          path: ./bin/linux/
-
-      - name: Upload Windows Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: datakeeper-windows
-          path: ./bin/win/
-
-      - name: Upload MacOS Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: datakeeper-mac
-          path: ./bin/mac/
-
+          name: macos-binaries
+          path: ./bin/mac
+    
       # - name: "Build"
       #   uses: actions/upload-artifact@v4
       #   run: |

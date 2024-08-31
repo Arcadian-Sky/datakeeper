@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"time"
@@ -24,9 +23,11 @@ type Person struct {
 }
 
 type Data struct {
-	loadForm *tview.Form
-	list     *tview.List
-	move     *tview.List
+	loadForm          *tview.Form
+	sendLoginPassForm *tview.Form
+	sendCardForm      *tview.Form
+	list              *tview.List
+	move              *tview.List
 }
 type App struct {
 	settings     *settings.ClientConfig
@@ -54,9 +55,11 @@ func NewClientApp(st *settings.ClientConfig) *App {
 			Form:         tview.NewForm(),
 		},
 		data: Data{
-			list:     tview.NewList(),
-			move:     tview.NewList(),
-			loadForm: tview.NewForm(),
+			list:              tview.NewList(),
+			move:              tview.NewList(),
+			loadForm:          tview.NewForm(),
+			sendLoginPassForm: tview.NewForm(),
+			sendCardForm:      tview.NewForm(),
 		},
 		settings: st,
 	}
@@ -75,7 +78,7 @@ func NewClientApp(st *settings.ClientConfig) *App {
 	app.initPersonInterfaces()
 	app.initDataInterfaces()
 	app.iniSettings()
-	app.initMenu()
+	app.initPages()
 
 	return app
 }
@@ -108,10 +111,6 @@ func (app *App) initPersonInterfaces() {
 			app.tapp.Stop()
 		})
 
-		// filePath := app.data.loadForm.GetFormItem(0).(*tview.InputField).GetText()
-		// if err := app.uploadFile(filePath); err != nil {
-		// 	fmt.Println("Error uploading file:", err)
-		// }
 	// Создаем формы для регистрации
 	app.person.registerForm.SetBorder(true).SetTitle("Enter some data").SetTitleAlign(tview.AlignLeft)
 	app.person.registerForm.
@@ -147,7 +146,7 @@ func (app *App) initDataInterfaces() {
 
 	// Создаем интерфейс для отображения данных
 	app.data.list.SetTitle("Data List")
-	app.data.list.AddItem("Back", "", 'q', func() {
+	app.data.list.AddItem("Back", "Make click to run action", 'q', func() {
 		app.pages.SwitchToPage("main")
 	})
 	app.data.list.AddItem("Load Files", "", 'f', func() {
@@ -160,24 +159,13 @@ func (app *App) initDataInterfaces() {
 	app.data.list.AddItem("Load Data", "", 'f', func() {
 		app.logView.Clear()
 		app.pages.SwitchToPage("datalist")
-		// err := loadData()
-		// if err != nil {
-		// 	// Обработка ошибки
-		// 	fmt.Fprintf(app.logView, "Error loading data: %v\n", err)
-		// } else {
-		// 	// Данные успешно загружены, переключаемся на страницу
-		// 	app.pages.SwitchToPage("datalist")
-		// }
 	})
-	// app.data.list.AddItem("List item 1", "Some explanatory text", 'a', nil)
-	// for _, item := range data {
-	// 	app.data.list.AddItem(item, "", 0, nil)
-	// }
 
 	// Создаем форму для отправки данных
 	app.data.loadForm.
-		SetTitle("Send Data").
+		SetTitle("Send File Entry").
 		SetBorder(true)
+
 	app.data.loadForm.
 		AddInputField("File Path", "", 40, nil, nil).
 		AddButton("Select File", func() {
@@ -191,16 +179,56 @@ func (app *App) initDataInterfaces() {
 			app.data.loadForm.GetFormItem(0).(*tview.InputField).SetText(filename)
 		}).
 		AddButton("Send", func() {
-			// Добавить логику отправки данных здесь
-			fmt.Println("Sending data...")
-
+			app.logView.Clear()
+			app.log.Info("Sending data...")
 			filePath := app.data.loadForm.GetFormItem(0).(*tview.InputField).GetText()
-			if err := app.uploadFile(filePath); err != nil {
-				fmt.Println("Error uploading file:", err)
+			app.log.Info("File path: ", filePath)
+			if err := app.client.UploadFile(filePath); err != nil {
+				app.log.Info(fmt.Println("Error uploading file:", err))
 			}
 
 		}).
 		AddButton("Quit", func() {
+			app.logView.Clear()
+			app.pages.SwitchToPage("main")
+		})
+
+	app.data.sendLoginPassForm.
+		SetTitle("Send Auth Entry").
+		SetBorder(true)
+
+	app.data.sendLoginPassForm.
+		AddInputField("Domain", "", 20, nil, nil).
+		AddInputField("Login", "", 20, nil, nil).
+		AddPasswordField("Password", "", 20, '*', nil).
+		AddButton("Submit", func() { // Кнопка "Submit"
+			domain := app.person.registerForm.GetFormItem(0).(*tview.InputField).GetText()
+			login := app.person.registerForm.GetFormItem(1).(*tview.InputField).GetText()
+			password := app.person.registerForm.GetFormItem(2).(*tview.InputField).GetText()
+
+			app.log.Info(fmt.Printf("Login: %s, Password: %s\n, Domain: %s\n", login, password, domain))
+		}).
+		AddButton("Quit", func() {
+			app.pages.SwitchToPage("main")
+		})
+
+	app.data.sendCardForm.
+		SetTitle("Send Card Entry").
+		SetBorder(true)
+
+	app.data.sendCardForm.
+		AddInputField("Title", "", 20, nil, nil).
+		AddInputField("Card Number", "", 20, func(textToCheck string, lastChar rune) bool {
+			// Allow only numbers and spaces in the card number field
+			return (lastChar >= '0' && lastChar <= '9') || lastChar == ' '
+		}, nil).
+		AddButton("Submit", func() {
+			domain := app.person.registerForm.GetFormItem(0).(*tview.InputField).GetText()
+			card := app.person.registerForm.GetFormItem(1).(*tview.InputField).GetText()
+
+			app.log.Info(fmt.Printf("Title: %s, Card: %s\n", domain, card))
+		}).
+		AddButton("Cancel", func() {
 			app.pages.SwitchToPage("main")
 		})
 
@@ -222,7 +250,7 @@ func (app *App) iniSettings() {
 		SetTitleAlign(tview.AlignLeft)
 }
 
-func (app *App) initMenu() {
+func (app *App) initPages() {
 
 	menu := tview.NewList()
 
@@ -232,17 +260,17 @@ func (app *App) initMenu() {
 		AddItem("Главная", "Перейти на главную страницу", '1', func() {
 			app.pages.SwitchToPage("person")
 		}).
-		// AddItem("Авторизация", "Авторизация", '2', func() {
-		// 	app.pages.SwitchToPage("auth")
-		// }).
-		// AddItem("Авторизация", "Регистрация", '2', func() {
-		// 	app.pages.SwitchToPage("register")
-		// }).
-		AddItem("Список данных", "Посмотреть сохраненные данные", '3', func() {
+		AddItem("Список данных", "Посмотреть сохраненные данные", '2', func() {
 			app.pages.SwitchToPage("datalist")
 		}).
-		AddItem("Загрузка данных", "Отправить данные", '4', func() {
-			app.pages.SwitchToPage("dataform")
+		AddItem("Загрузка файла", "Отправить файл", '3', func() {
+			app.pages.SwitchToPage("fileform")
+		}).
+		AddItem("Загрузка авторизации", "Отправить данные пары логин пароль к домены", '4', func() {
+			app.pages.SwitchToPage("loginpassform")
+		}).
+		AddItem("Загрузка карты", "Отправить номер кредитки", '5', func() {
+			app.pages.SwitchToPage("cardform")
 		}).
 		AddItem("Настройки", "Настройки", 's', func() {
 			app.pages.SwitchToPage("settings")
@@ -253,7 +281,8 @@ func (app *App) initMenu() {
 
 	// Устанавливаем обработчик выбора элемента
 	menu.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
-		fmt.Print(" Вы выбрали: ", string(shortcut))
+		app.logView.Clear()
+		app.log.Info(" Вы выбрали: ", string(shortcut))
 	})
 
 	app.pages.AddPage("main", menu, true, true)
@@ -261,7 +290,9 @@ func (app *App) initMenu() {
 	app.pages.AddPage("register", app.person.registerForm, true, false)
 	app.pages.AddPage("person", app.person.Form, true, false)
 	app.pages.AddPage("datalist", app.data.list, true, false)
-	app.pages.AddPage("dataform", app.data.loadForm, true, false)
+	app.pages.AddPage("fileform", app.data.loadForm, true, false)
+	app.pages.AddPage("loginpassform", app.data.sendLoginPassForm, true, false)
+	app.pages.AddPage("cardform", app.data.sendCardForm, true, false)
 	app.pages.AddPage("settings", app.settingsForm, true, false)
 
 	// Проверяем валидность токена
@@ -311,50 +342,6 @@ func saveNewToken() {
 	// Логика сохранения токена (например, запись в файл/БД)
 	// Здесь просто пример с сохранением времени
 	fmt.Println("Новый токен сохранен:", time.Now())
-}
-
-func (app *App) uploadFile(filePath string) error {
-
-	// Открываем файл для чтения
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("could not open file: %v", err)
-	}
-	defer file.Close()
-
-	stream, err := app.client.UploadFile(context.Background())
-	if err != nil {
-		return fmt.Errorf("error creating stream: %v", err)
-	}
-
-	// Отправляем части файла
-	// buffer := make([]byte, 1024)
-	// for {
-	// 	n, err := file.Read(buffer)
-	// 	if err == io.EOF {
-	// 		break
-	// 	}
-	// 	if err != nil {
-	// 		return fmt.Errorf("error reading file: %v", err)
-	// 	}
-
-	// 	err = stream.Send(&pb.FileChunk{
-	// 		Content:  buffer[:n],
-	// 		Filename: filePath, // Передаем имя файла
-	// 	})
-	// 	if err != nil {
-	// 		return fmt.Errorf("error sending chunk: %v", err)
-	// 	}
-	// }
-
-	// Завершаем отправку и получаем ответ
-	status, err := stream.CloseAndRecv()
-	if err != nil {
-		return fmt.Errorf("error receiving response: %v", err)
-	}
-
-	fmt.Printf("Upload finished with status: %v\n", status.Message)
-	return nil
 }
 
 // Вызов клиента для получения данных

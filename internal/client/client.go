@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"time"
 
 	pbsrv "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/service/v1"
@@ -32,6 +35,7 @@ func NewGclient(clientConfig settings.ClientConfig, mstorage *MemStorage, lg *lo
 		clientConfig.ServerAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(getUnaryClientInterceptor(mstorage)),
+		grpc.WithStreamInterceptor(getStreamClientInterceptor(mstorage)),
 	)
 	if err != nil {
 		lg.Debug("failed to connect to server: ", err)
@@ -68,6 +72,31 @@ func getUnaryClientInterceptor(mstorage *MemStorage) grpc.UnaryClientInterceptor
 		}
 
 		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
+
+func getStreamClientInterceptor(mstorage *MemStorage) grpc.StreamClientInterceptor {
+	return func(
+		ctx context.Context,
+		desc *grpc.StreamDesc,
+		cc *grpc.ClientConn,
+		method string,
+		streamer grpc.Streamer,
+		opts ...grpc.CallOption,
+	) (grpc.ClientStream, error) {
+		_, ok := SkipCheckMethods[method]
+		if !ok {
+			ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+mstorage.Token)
+		}
+
+		// Call the streamer to create the ClientStream
+		clientStream, err := streamer(ctx, desc, cc, method, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		// Return the created ClientStream
+		return clientStream, nil
 	}
 }
 
@@ -191,6 +220,49 @@ func (gc *GRPCClient) DeleteFile(fileName string) error {
 }
 
 // Отправка файлов на сервер
-func (gc *GRPCClient) UploadFile(ctx context.Context) (grpc.ClientStreamingClient[pbsrv.FileChunk, pbsrv.UploadStatus], error) {
-	return nil, nil
+func (gc *GRPCClient) UploadFile(filePath string) error {
+	fileName := filepath.Base(filePath)
+	gc.log.Info("File name: ", fileName)
+	// Открываем файл для чтения
+	file, err := os.Open(filePath)
+	if err != nil {
+		gc.log.Trace("could not open file: ", err)
+		return fmt.Errorf("could not open file: %v", err)
+	}
+	defer file.Close()
+
+	stream, err := gc.Data.UploadFile(context.Background())
+	if err != nil {
+		gc.log.Trace("error creating stream: ", err)
+		return fmt.Errorf("error creating stream: %v", err)
+	}
+
+	// Read the file and send chunks
+	buffer := make([]byte, 1024)
+	for {
+		n, err := file.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			gc.log.Trace("Failed to read file: ", err)
+		}
+
+		if err := stream.Send(&pbsrv.FileChunk{
+			Data:     buffer[:n],
+			Filename: fileName,
+		}); err != nil {
+			gc.log.Trace("Failed to send chunk: ", err)
+		}
+	}
+	// Close the stream and get the response
+	status, err := stream.CloseAndRecv()
+	if err != nil {
+		gc.log.Trace("Failed to receive response: ", err)
+	}
+
+	gc.log.Info("Upload status:", status.Success, ", message: ", status.Message)
+
+	return nil
 }

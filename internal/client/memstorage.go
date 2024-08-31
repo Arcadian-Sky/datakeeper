@@ -4,11 +4,13 @@ import (
 	"log"
 	"os"
 	"path"
+	"time"
 )
 
 // MemStorage stores runtime state of client
 type MemStorage struct {
 	Login        string
+	LastUpdate   time.Time
 	Token        string
 	MasterKey    MasterKey
 	MasterKeyDir string
@@ -29,7 +31,7 @@ func (m *MemStorage) SetMasterKey(key string, keyPath string) {
 
 // NewMemStorage returns new MemStorage instance
 func NewMemStorage() *MemStorage {
-	mstorage := MemStorage{}
+	mstorage := MemStorage{LastUpdate: time.Now()}
 	mstorage.MasterKeyDir = createKeyDir()
 	mstorage.PfilesDir = createPfileDir()
 	return &mstorage
@@ -52,7 +54,7 @@ func createPfileDir() string {
 	if err != nil {
 		log.Fatalf("cant get user home directory: %s", err.Error())
 	}
-	kpath := path.Join(userHome, ".gk-pfiles")
+	kpath := path.Join(userHome, ".dk-pfiles")
 	err = os.MkdirAll(kpath, 0700)
 	if err != nil {
 		log.Fatalf("cant create pfile directory(%s): %s", kpath, err.Error())

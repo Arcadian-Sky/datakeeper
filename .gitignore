@@ -1,5 +1,6 @@
 ### Go ###
 # Binaries for programs and plugins
+*.env
 *.exe
 *.exe~
 *.dll

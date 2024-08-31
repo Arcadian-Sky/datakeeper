@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -17,6 +18,7 @@ var (
 	ErrCreateBucketFailed = errors.New("failed to create bucket")
 	ErrCreateBucketExists = errors.New("bucket already exists")
 	ErrCreateBucketNoUser = errors.New("bucket user id not exists")
+	ErrNoUserBucket       = errors.New("bucket for user id not exists")
 
 	ErrEmptyRequestBody    = errors.New("request body is empty")
 	ErrErrorRequestBody    = errors.New("failed to read request body")
@@ -48,10 +50,11 @@ type Claims struct {
 }
 
 type User struct {
-	ID       int64  `json:"id"`
-	Login    string `json:"login"`
-	Password string `json:"password"`
-	Bucket   string `json:"bucket"`
+	ID         int64     `json:"id"`
+	Login      string    `json:"login"`
+	Password   string    `json:"password"`
+	Bucket     string    `json:"bucket"`
+	LastUpdate time.Time `json:"last_update"`
 }
 
 // type Data struct {
@@ -61,12 +64,16 @@ type User struct {
 // }
 
 type Data struct {
-	ID          int64
-	Name        string
-	Type        string
-	KeyHash     string
-	PrivateData string
+	ID       int64
+	UserID   int64
+	Title    string
+	Type     string
+	Card     string
+	Login    string
+	Password string
+	KeyHash  string
 }
+
 type FileItem struct {
 	Hash string
 	Name string

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -12,9 +13,10 @@ import (
 )
 
 type FileRepository interface {
-	Get(ctx context.Context, userID int64, data model.Data) (int64, error)
 	GetFileList(ctx context.Context, user *model.User) ([]model.FileItem, error)
 	DeleteFile(ctx context.Context, fileId string, user *model.User) error
+	UploadFile(ctx context.Context, user *model.User, objectName string, file *os.File) error
+
 	Save(ctx context.Context, user model.User, data model.Data) (int64, error)
 	CreateContainer(ctx context.Context, user *model.User) (model.User, error)
 }
@@ -68,10 +70,6 @@ func (f *FileRepo) CreateContainer(ctx context.Context, user *model.User) (model
 // 	}
 // }()
 
-func (f *FileRepo) Get(ctx context.Context, userID int64, data model.Data) (int64, error) {
-	return 1, nil
-}
-
 func (f *FileRepo) DeleteFile(ctx context.Context, fileName string, user *model.User) error {
 	bucketName := "bucketuid" + strconv.Itoa(int(user.ID))
 
@@ -86,7 +84,7 @@ func (f *FileRepo) DeleteFile(ctx context.Context, fileName string, user *model.
 }
 
 func (f *FileRepo) GetFileList(ctx context.Context, user *model.User) ([]model.FileItem, error) {
-	if user.ID == 0 {
+	if user.ID <= 0 {
 		return nil, model.ErrCreateBucketNoUser
 	}
 
@@ -114,6 +112,23 @@ func (f *FileRepo) GetFileList(ctx context.Context, user *model.User) ([]model.F
 	return objects, nil
 }
 
+// UploadFile uploads a file to a MinIO bucket.
+func (f *FileRepo) UploadFile(ctx context.Context, user *model.User, objectName string, file *os.File) error {
+	if user.ID <= 0 {
+		return model.ErrNoUserBucket
+	}
+
+	bucketName := "bucketuid" + strconv.Itoa(int(user.ID))
+
+	// Upload the file
+	_, err := f.db.PutObject(ctx, bucketName, objectName, file, -1, minio.PutObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to upload file to MinIO: %w", err)
+	}
+
+	return nil
+}
+
 func (f *FileRepo) Save(ctx context.Context, user model.User, data model.Data) (int64, error) {
 
 	// Проверка существования бакета, создание, если он не существует
@@ -131,17 +146,17 @@ func (f *FileRepo) Save(ctx context.Context, user model.User, data model.Data) (
 	}
 
 	// Преобразуем строку данных в байтовый поток
-	dataReader := strings.NewReader(data.PrivateData)
+	dataReader := strings.NewReader(data.Card)
 
 	// Загрузка данных в бакет
-	_, err = f.db.PutObject(context.Background(), user.Bucket, data.Name, dataReader, int64(dataReader.Len()), minio.PutObjectOptions{
+	_, err = f.db.PutObject(context.Background(), user.Bucket, data.Title, dataReader, int64(dataReader.Len()), minio.PutObjectOptions{
 		ContentType: "application/octet-stream",
 	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to save data to MinIO: %w", err)
 	}
 
-	f.log.Printf("Successfully saved %s to bucket %s\n", data.Name, user.Bucket)
+	f.log.Printf("Successfully saved %s to bucket %s\n", data.Title, user.Bucket)
 
 	return 1, nil
 }

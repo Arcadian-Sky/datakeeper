@@ -371,7 +371,7 @@ func (m *FileChunk) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Content
+	// no validation rules for Data
 
 	// no validation rules for Filename
 

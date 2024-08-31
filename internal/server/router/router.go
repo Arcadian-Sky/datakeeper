@@ -3,7 +3,9 @@ package router
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"os"
 
 	pbservice "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/service/v1"
 	pbuser "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/user/v1"
@@ -41,7 +43,8 @@ type GRPCServer struct {
 func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.FileRepository, ru *repository.UserRepository) (*GRPCServer, error) {
 	// creates a gRPC server
 	s := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptor.AuthCheckGRPC(lg, cf.SecretKey)),
+		grpc.UnaryInterceptor(interceptor.UnaryInterceptor(lg, cf.SecretKey)),
+		grpc.StreamInterceptor(interceptor.StreamInterceptor(lg, cf.SecretKey)),
 	)
 
 	ob := &GRPCServer{
@@ -161,50 +164,63 @@ func (g *GRPCServer) ShutDown() error {
 	return nil
 }
 
-func (s *GRPCServer) AddData(ctx context.Context, in *pbservice.AddDataRequest) (*pbservice.AddDataResponse, error) {
-	return nil, nil
-}
-func (s *GRPCServer) UploadFile(in grpc.ClientStreamingServer[pbservice.FileChunk, pbservice.UploadStatus]) error {
-	// for {
-	// 	req, err := stream.Recv()
-	// 	if err == io.EOF {
-	// 		break
-	// 	}
-	// 	if err != nil {
-	// 		return status.Errorf(codes.Internal, "failed to receive data: %v", err)
-	// 	}
+func (s *GRPCServer) UploadFile(stream pbservice.DataKeeperService_UploadFileServer) error {
+	// Obtain context from the stream
+	ctx := stream.Context()
+	uID := jwtrule.GetUserIDFromCTX(ctx)
+	s.log.Trace("uID: ", uID)
 
-	// 	// Get user information (you would need to have a way to retrieve the user)
-	// 	user := model.User{
-	// 		ID:     req.GetUserId(),
-	// 		Login:  req.GetUserLogin(),
-	// 		Bucket: req.GetUserBucket(),
-	// 	}
+	user := &model.User{
+		ID: uID,
+	}
 
-	// 	// Prepare the data to be saved
-	// 	data := model.Data{
-	// 		Name:        req.GetName(),
-	// 		Type:        req.GetType(),
-	// 		KeyHash:     req.GetKeyHash(),
-	// 		PrivateData: req.GetPrivateData(),
-	// 	}
+	// Create a temporary file to store uploaded data
+	tmpFile, err := os.CreateTemp("", "uploaded-*.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
 
-	// 	// Save the data using the FileRepo's Save method
-	// 	dataID, err := s.reposervice.Save(context.Background(), user, data)
-	// 	if err != nil {
-	// 		return status.Errorf(codes.Internal, "failed to save data: %v", err)
-	// 	}
+	objectName := ""
+	// Read chunks from the stream and write to the temp file
+	for {
+		chunk, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to receive chunk: %w", err)
+		}
 
-	// 	// Send response back to the client
-	// 	resp := &pbservice.AddDataResponse{
-	// 		DataId: dataID,
-	// 	}
-	// 	if err := stream.Send(resp); err != nil {
-	// 		return status.Errorf(codes.Internal, "failed to send response: %v", err)
-	// 	}
-	// }
+		if _, err := tmpFile.Write(chunk.Data); err != nil {
+			return fmt.Errorf("failed to write chunk to temp file: %w", err)
+		}
 
-	return nil
+		objectName = chunk.Filename
+	}
+
+	// Close the temp file
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	// Upload the file to MinIO
+	file, err := os.Open(tmpFile.Name())
+	if err != nil {
+		return fmt.Errorf("failed to open temp file: %w", err)
+	}
+	defer file.Close()
+
+	err = s.reposervice.UploadFile(ctx, user, objectName, file)
+	if err != nil {
+		return fmt.Errorf("failed to upload file to MinIO: %w", err)
+	}
+
+	// Send response to client
+	return stream.SendAndClose(&pbservice.UploadStatus{
+		Success: true,
+		Message: "File uploaded successfully",
+	})
 }
 
 func (s *GRPCServer) GetFileList(ctx context.Context, in *pbservice.ListFileRequest) (*pbservice.ListFileResponse, error) {

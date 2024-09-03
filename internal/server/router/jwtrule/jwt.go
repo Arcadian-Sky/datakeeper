@@ -9,6 +9,12 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+type ctxKey string
+
+var (
+	CtxKeyUserID ctxKey = "userID"
+)
+
 // Generate generates new JWT token
 func Generate(userid int64, key string) (model.Jtoken, error) {
 	now := time.Now()
@@ -50,12 +56,12 @@ func Validate(tokenString string, key string) (model.Jtoken, error) {
 
 // SetUserIDToCTX add userID to the context.
 func SetUserIDToCTX(ctx context.Context, value int) context.Context {
-	return context.WithValue(ctx, "userID", value)
+	return context.WithValue(ctx, CtxKeyUserID, value)
 }
 
 // Получаем значение из контекста
 func GetUserIDFromCTX(ctx context.Context) int64 {
-	if iUserID, ok := ctx.Value("userID").(int); ok {
+	if iUserID, ok := ctx.Value(CtxKeyUserID).(int); ok {
 		return int64(iUserID)
 	}
 	return -1

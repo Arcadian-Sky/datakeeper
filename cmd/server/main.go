@@ -27,14 +27,18 @@ func main() {
 
 	go handleSignals(ap.CncF, ap.Logger)
 
-	//set repo
+	//set user repo
 	repo := repository.NewUserRepository(ap.DBPG, ap.Logger)
-	ap.SetDBPGRepo(repo)
+	ap.SetUserRepo(repo)
+
+	//set data repo
+	repod := repository.NewDataRepository(ap.DBPG, ap.Logger)
+	ap.SetDataRepo(repod)
+
 	err = ap.MigrateDBPG()
 	if err != nil {
 		ap.Logger.Fatal(err)
 	}
-
 	// mgrepo := repository.NewDataRepository(ap.DBMG, ap.Logger)
 	// ap.SetDBMGRepo(mgrepo)
 
@@ -50,6 +54,7 @@ func main() {
 		ap.Logger,
 		ap.GetFileRepo(),
 		ap.GetUserRepo(),
+		ap.GetDataRepo(),
 	)
 
 	//set handlers

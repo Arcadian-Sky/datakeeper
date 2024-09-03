@@ -18,14 +18,7 @@ import (
 	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-)
-
-var (
-	newerVersionDetected   = "Current / newer version found in database. Please synchronize you app to get the most actual data."
-	failedToSaveNewVersion = "Failed to save new record. Please try again."
-	failedDBQuery          = "failed to obtain database data"
 )
 
 type GRPCServer struct {
@@ -33,6 +26,7 @@ type GRPCServer struct {
 	log         *logrus.Logger
 	reposervice repository.FileRepository
 	repouser    repository.UserRepository
+	repodata    repository.DataRepository
 	serv        *grpc.Server
 	// tokenKey
 	pbservice.UnimplementedDataKeeperServiceServer
@@ -40,7 +34,7 @@ type GRPCServer struct {
 }
 
 // InitGRPCServer initializes a new gRPC server.
-func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.FileRepository, ru *repository.UserRepository) (*GRPCServer, error) {
+func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.FileRepository, ru *repository.UserRepository, rd *repository.DataRepository) (*GRPCServer, error) {
 	// creates a gRPC server
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptor.UnaryInterceptor(lg, cf.SecretKey)),
@@ -50,6 +44,7 @@ func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.
 	ob := &GRPCServer{
 		cfg:         cf,
 		log:         lg,
+		repodata:    *rd,
 		reposervice: *rs,
 		repouser:    *ru,
 		serv:        s,
@@ -129,7 +124,7 @@ func (s *GRPCServer) Authenticate(ctx context.Context, in *pbuser.AuthenticateRe
 		return nil, status.Errorf(codes.Internal, e)
 	}
 
-	mess += fmt.Sprintf("token generated")
+	mess += "token generated"
 
 	bSuccess := false
 	if user.ID > 0 && userJWT.Token != "" {
@@ -245,126 +240,59 @@ func (s *GRPCServer) GetFileList(ctx context.Context, in *pbservice.ListFileRequ
 		})
 	}
 
-	return &pbservice.ListFileResponse{FileItem: resp}, nil
+	return &pbservice.ListFileResponse{Fileitem: resp}, nil
 }
 
-// func (s *GRPCServer) UpdateData(grpc.BidiStreamingServer[pbservice.UpdateDataRequest, pbservice.UpdateDataResponse]) error {
-// 	return nil
-// }
+func (s *GRPCServer) SaveData(ctx context.Context, in *pbservice.SaveDataRequest) (*pbservice.UploadStatus, error) {
 
-// func (s *GRPCServer) AddData(ctx context.Context, in *pb.AddDataRequest) (*pb.AddDataResponse, error) {
-// 	if in.GetData() == nil {
-// 		return nil, status.Errorf(codes.InvalidArgument, "data is nil")
-// 	}
+	uID := jwtrule.GetUserIDFromCTX(ctx)
+	s.log.Trace("uID: ", uID)
+	data := model.Data{
+		Type:     getType(in.Data.Type),
+		UserID:   uID,
+		Title:    in.Data.Title,
+		Card:     in.Data.Card,
+		Login:    in.Data.Login,
+		Password: in.Data.Password,
+	}
 
-// 	data := model.Data{
-// 		Name:        in.Data.Name,
-// 		Type:        getType(in.Data.Type),
-// 		KeyHash:     base64.StdEncoding.EncodeToString(in.Data.KeyHash),
-// 		PrivateData: base64.StdEncoding.EncodeToString(in.Data.Data)}
+	fmt.Printf("data: %v\n", data)
 
-//		userID, err := s.getUserID(ctx)
-//		if err != nil {
-//			e := fmt.Sprintf("failed to get userid: %s", err.Error())
-//			return nil, status.Errorf(getCode(err), e)
-//		}
-//		_, err = s.db.PrivateAdd(ctx, userID, data)
-//		if err != nil {
-//			e := fmt.Sprintf("failed to add data to database: %s", err.Error())
-//			return nil, status.Errorf(getCode(err), e)
-//		}
-//		r := fmt.Sprintf("data %s was added sucsessfully", data.Name)
-//		return &pb.AddDataResponse{Response: r}, nil
-//	}
-func (s *GRPCServer) GetData(grpc.BidiStreamingServer[pbservice.GetDataRequest, pbservice.GetDataResponse]) error {
-	return nil
+	_, err := s.repodata.Save(ctx, &data)
+	if err != nil {
+		s.log.Println(err)
+		return nil, status.Error(codes.Internal, "failed to get user files")
+	}
+
+	return &pbservice.UploadStatus{Success: true, Message: "empty"}, nil
 }
 
-// func (s *GRPCServer) GetData(ctx context.Context, in *pb.GetDataRequest) (*pb.GetDataResponse, error) {
-// 	// if in.DataID == 0 {
-// 	// 	return nil, status.Errorf(codes.InvalidArgument, "pname is not set")
-// 	// }
-// 	// userID, err := s.getUserID(ctx)
-// 	// if err != nil {
-// 	// 	e := fmt.Sprintf("failed to get userid: %s", err.Error())
-// 	// 	return nil, status.Errorf(getCode(err), e)
-// 	// }
+func (s *GRPCServer) GetDataList(ctx context.Context, in *pbservice.ListDataRequest) (*pbservice.ListDataResponse, error) {
+	uID := jwtrule.GetUserIDFromCTX(ctx)
+	s.log.Trace("uID: ", uID)
+	user := &model.User{
+		ID: uID,
+	}
+	data, err := s.repodata.GetList(ctx, user)
+	if err != nil {
+		e := fmt.Sprintf("failed to list pdata: %s", err.Error())
+		return nil, status.Errorf(getCode(err), e)
+	}
 
-// 	// data, err := s.repo.Get(ctx, userID, in.DataID)
-// 	// if err != nil {
-// 	// 	e := fmt.Sprintf("failed to get pdata: %s", err.Error())
-// 	// 	return nil, status.Errorf(getCode(err), e)
-// 	// }
+	var pdataPointers []*pbservice.Data
+	for _, item := range data {
+		pdataPointers = append(pdataPointers,
+			&pbservice.Data{
+				Id:       item.ID,
+				Title:    item.Title,
+				Type:     getPType(item.Type),
+				Card:     item.Card,
+				Login:    item.Login,
+				Password: item.Password,
+			})
+	}
 
-// 	// keyHash, err := base64.StdEncoding.DecodeString(data.KeyHash)
-// 	// if err != nil {
-// 	// 	e := fmt.Sprintf("cant decode khash_base64 to byte array: %s", err.Error())
-// 	// 	return nil, status.Error(codes.Internal, e)
-// 	// }
-// 	// privateData, err := base64.StdEncoding.DecodeString(data.PrivateData)
-// 	// if err != nil {
-// 	// 	e := fmt.Sprintf("cant decode data_base64 to byte array: %s", err.Error())
-// 	// 	return nil, status.Error(codes.Internal, e)
-// 	// }
-// 	// pbData := pb.Data{
-// 	// 	ID: in.DataID,
-// 	// 	Name:        data.Name,
-// 	// 	Type:        getTypeCode(data.Type),
-// 	// 	KeyHash:     keyHash,
-// 	// 	PrivateData: []byte(privateData),
-// 	// }
-// 	// &pbData
-// 	// pbData := pb.Data{}
-
-// 	return &pb.GetDataResponse{Data: &pb.Data{}}, nil
-// }
-
-// func (s *GRPCServer) UpdateData(ctx context.Context, in *pb.UpdateDataRequest) (*pb.UpdateDataResponse, error) {
-// 	if in.Data == nil {
-// 		return nil, status.Errorf(codes.InvalidArgument, "pname is not set")
-// 	}
-// 	userID, err := s.getUserID(ctx)
-// 	if err != nil {
-// 		e := fmt.Sprintf("failed to get userid: %s", err.Error())
-// 		return nil, status.Errorf(getCode(err), e)
-// 	}
-// 	data := model.Data{
-// 		ID:          in.Data.ID,
-// 		Name:        in.Data.Name,
-// 		Type:        getType(in.Data.Type),
-// 		KeyHash:     base64.StdEncoding.EncodeToString(in.Data.KeyHash),
-// 		PrivateData: base64.StdEncoding.EncodeToString(in.Data.Data)}
-
-// 	err = s.repo.Update(ctx, userID, data)
-// 	if err != nil {
-// 		e := fmt.Sprintf("failed to update pdata: %s", err.Error())
-// 		return nil, status.Errorf(getCode(err), e)
-// 	}
-// 	r := fmt.Sprintf("data %s was updated sucsessfully", data.Name)
-// 	return &pb.UpdateDataResponse{Response: r}, nil
-// }
-
-func (s *GRPCServer) ListData(ctx context.Context, in *pbservice.ListDataRequest) (*pbservice.ListDataResponse, error) {
-	// userID, err := s.getUserID(ctx)
-	// if err != nil {
-	// 	e := fmt.Sprintf("failed to get userid: %s", err.Error())
-	// 	return nil, status.Errorf(getCode(err), e)
-	// }
-
-	// data, err := s.repo.GetList(ctx, userID, in.Type)
-	// if err != nil {
-	// 	e := fmt.Sprintf("failed to list pdata: %s", err.Error())
-	// 	return nil, status.Errorf(getCode(err), e)
-	// }
-
-	// var pdataPointers []*pb.DataItem
-	// for _, p := range data {
-	// 	pdataPointers = append(pdataPointers,
-	// 		&pb.DataItem{Name: p.Name, ID: p.ID})
-	// }
-
-	// return &pb.ListDataResponse{DataItem: pdataPointers}, nil
-	return &pbservice.ListDataResponse{DataItem: nil}, nil
+	return &pbservice.ListDataResponse{Data: pdataPointers}, nil
 
 }
 func (s *GRPCServer) DeleteFile(ctx context.Context, in *pbservice.DeleteFileRequest) (*pbservice.UploadStatus, error) {
@@ -374,7 +302,7 @@ func (s *GRPCServer) DeleteFile(ctx context.Context, in *pbservice.DeleteFileReq
 		ID: uID,
 	}
 
-	err := s.reposervice.DeleteFile(ctx, in.FileName, &user)
+	err := s.reposervice.DeleteFile(ctx, in.Filename, &user)
 	if err != nil {
 		e := fmt.Sprintf("failed to delete file: %v", err)
 		s.log.Info(e)
@@ -384,22 +312,62 @@ func (s *GRPCServer) DeleteFile(ctx context.Context, in *pbservice.DeleteFileReq
 	return &pbservice.UploadStatus{Success: true, Message: "data was deleted"}, nil
 }
 
-func (s *GRPCServer) getUserID(ctx context.Context) (int64, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return 0, status.Errorf(codes.Internal, "failed to retrive metadata from ctx")
+// func (s *GRPCServer) getUserID(ctx context.Context) (int64, error) {
+// 	md, ok := metadata.FromIncomingContext(ctx)
+// 	if !ok {
+// 		return 0, status.Errorf(codes.Internal, "failed to retrive metadata from ctx")
+// 	}
+// 	tokenRaw, ok := md["authorization"]
+// 	if !ok || len(tokenRaw[0]) == 0 {
+// 		return 0, model.ErrNoToken
+// 	}
+// 	tokenParsed, err := jwtrule.Validate(tokenRaw[0], s.cfg.SecretKey)
+// 	if err != nil {
+// 		return 0, model.ErrInvalidToken
+// 	}
+
+// 	return tokenParsed.Claims.UserID, nil
+// }
+
+// GetFile retrieves a file from MinIO and sends it as a stream of FileChunks
+func (s *GRPCServer) GetFile(req *pbservice.GetFileRequest, stream pbservice.DataKeeperService_GetFileServer) error {
+	uID := jwtrule.GetUserIDFromCTX(stream.Context())
+	s.log.Trace("uID: ", uID)
+	user := &model.User{
+		ID: uID,
 	}
-	tokenRaw, ok := md["authorization"]
-	if !ok || len(tokenRaw[0]) == 0 {
-		return 0, model.ErrNoToken
-	}
-	tokenParsed, err := jwtrule.Validate(tokenRaw[0], s.cfg.SecretKey)
+	fileID := req.GetName()
+
+	// Получаем файл из MinIO
+	file, err := s.reposervice.GetFile(stream.Context(), fileID, user)
 	if err != nil {
-		return 0, model.ErrInvalidToken
+		return err
+	}
+	defer file.Close()
+
+	buffer := make([]byte, 1024*1024) // 1 MB buffer size
+
+	// Читаем файл по частям и отправляем через поток
+	for {
+		n, err := file.Read(buffer)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+		// Отправляем часть файла в виде FileChunk
+		chunk := &pbservice.FileChunk{
+			Data:     buffer[:n],
+			Filename: fileID,
+		}
+		if err := stream.Send(chunk); err != nil {
+			return err
+		}
 	}
 
-	return tokenParsed.Claims.UserID, nil
-
+	return nil
 }
 
 // getCode returns gRCP error code based on error type
@@ -417,10 +385,24 @@ func getCode(e error) codes.Code {
 
 }
 
-func getType(_ pbservice.DataType) string {
-	return ""
+func getPType(stype string) pbservice.DataType {
+	switch stype {
+	case repository.DataType_CARD:
+		return pbservice.DataType_DATA_TYPE_TYPE_CREDIT_CARD
+	case repository.DataType_LOGPASS:
+		return pbservice.DataType_DATA_TYPE_TYPE_LOGIN_PASSWORD
+	}
+
+	return pbservice.DataType_DATA_TYPE_UNSPECIFIED
 }
 
-func getTypeCode(_ string) pbservice.DataType {
-	return pbservice.DataType_DATA_TYPE_UNSPECIFIED
+func getType(stype pbservice.DataType) string {
+	switch int(stype.Number()) {
+	case int(pbservice.DataType_DATA_TYPE_TYPE_CREDIT_CARD):
+		return repository.DataType_CARD
+	case int(pbservice.DataType_DATA_TYPE_TYPE_LOGIN_PASSWORD):
+		return repository.DataType_LOGPASS
+	}
+
+	return ""
 }

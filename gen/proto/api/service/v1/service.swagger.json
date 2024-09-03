@@ -45,44 +45,25 @@
         }
       }
     },
-    "v1AddDataResponse": {
-      "type": "object",
-      "properties": {
-        "response": {
-          "type": "string"
-        }
-      }
-    },
     "v1Data": {
       "type": "object",
       "properties": {
-        "name": {
+        "title": {
           "type": "string"
         },
         "type": {
           "$ref": "#/definitions/v1DataType"
         },
-        "data": {
-          "type": "string",
-          "format": "byte"
-        },
-        "keyHash": {
-          "type": "string",
-          "format": "byte"
-        },
-        "ID": {
-          "type": "string",
-          "format": "int64"
-        }
-      }
-    },
-    "v1DataItem": {
-      "type": "object",
-      "properties": {
-        "name": {
+        "login": {
           "type": "string"
         },
-        "ID": {
+        "password": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "id": {
           "type": "string",
           "format": "int64"
         }
@@ -100,13 +81,20 @@
       "description": "- DATA_TYPE_UNSPECIFIED: Произвольные текстовые данные\n - DATA_TYPE_TYPE_BINARY: Произвольные бинарные данные\n - DATA_TYPE_TYPE_LOGIN_PASSWORD: Пары логин/пароль\n - DATA_TYPE_TYPE_CREDIT_CARD: Данные банковских карт",
       "title": "Enum для описания типов данных"
     },
-    "v1DeleteDataResponse": {
+    "v1FileChunk": {
       "type": "object",
       "properties": {
-        "response": {
-          "type": "string"
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "title": "Содержимое файла"
+        },
+        "filename": {
+          "type": "string",
+          "title": "Имя файла (передается один раз в начале)"
         }
-      }
+      },
+      "title": "Загрузка файла\nСообщение, представляющее собой часть файла"
     },
     "v1FileItem": {
       "type": "object",
@@ -119,31 +107,22 @@
         }
       }
     },
-    "v1GetDataResponse": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/v1Data"
-        }
-      }
-    },
     "v1ListDataResponse": {
       "type": "object",
       "properties": {
-        "dataItem": {
+        "data": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1DataItem"
+            "$ref": "#/definitions/v1Data"
           }
         }
-      },
-      "title": "Список"
+      }
     },
     "v1ListFileResponse": {
       "type": "object",
       "properties": {
-        "fileItem": {
+        "fileitem": {
           "type": "array",
           "items": {
             "type": "object",
@@ -162,7 +141,7 @@
           "type": "string"
         }
       },
-      "title": "Статус загрузки"
+      "title": "Статус ответа - загрузки/сохранения/удаления"
     }
   }
 }

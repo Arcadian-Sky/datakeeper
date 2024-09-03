@@ -19,12 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DataKeeperService_AddData_FullMethodName     = "/proto.api.service.v1.DataKeeperService/AddData"
-	DataKeeperService_GetData_FullMethodName     = "/proto.api.service.v1.DataKeeperService/GetData"
-	DataKeeperService_ListData_FullMethodName    = "/proto.api.service.v1.DataKeeperService/ListData"
+	DataKeeperService_SaveData_FullMethodName    = "/proto.api.service.v1.DataKeeperService/SaveData"
+	DataKeeperService_GetDataList_FullMethodName = "/proto.api.service.v1.DataKeeperService/GetDataList"
 	DataKeeperService_DeleteData_FullMethodName  = "/proto.api.service.v1.DataKeeperService/DeleteData"
 	DataKeeperService_GetFileList_FullMethodName = "/proto.api.service.v1.DataKeeperService/GetFileList"
 	DataKeeperService_UploadFile_FullMethodName  = "/proto.api.service.v1.DataKeeperService/UploadFile"
+	DataKeeperService_GetFile_FullMethodName     = "/proto.api.service.v1.DataKeeperService/GetFile"
 	DataKeeperService_DeleteFile_FullMethodName  = "/proto.api.service.v1.DataKeeperService/DeleteFile"
 )
 
@@ -35,14 +35,13 @@ const (
 // Определение gRPC-сервиса для управления данными
 type DataKeeperServiceClient interface {
 	// Хранение новых данных на сервере (кроме файлов)
-	AddData(ctx context.Context, in *AddDataRequest, opts ...grpc.CallOption) (*AddDataResponse, error)
-	// Запрос данных с сервера
-	GetData(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GetDataRequest, GetDataResponse], error)
-	ListData(ctx context.Context, in *ListDataRequest, opts ...grpc.CallOption) (*ListDataResponse, error)
-	DeleteData(ctx context.Context, in *DeleteDataRequest, opts ...grpc.CallOption) (*DeleteDataResponse, error)
+	SaveData(ctx context.Context, in *SaveDataRequest, opts ...grpc.CallOption) (*UploadStatus, error)
+	GetDataList(ctx context.Context, in *ListDataRequest, opts ...grpc.CallOption) (*ListDataResponse, error)
+	DeleteData(ctx context.Context, in *DeleteDataRequest, opts ...grpc.CallOption) (*UploadStatus, error)
 	// Отправка файлов на сервер
 	GetFileList(ctx context.Context, in *ListFileRequest, opts ...grpc.CallOption) (*ListFileResponse, error)
 	UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileChunk, UploadStatus], error)
+	GetFile(ctx context.Context, in *GetFileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[FileChunk], error)
 	DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*UploadStatus, error)
 }
 
@@ -54,42 +53,29 @@ func NewDataKeeperServiceClient(cc grpc.ClientConnInterface) DataKeeperServiceCl
 	return &dataKeeperServiceClient{cc}
 }
 
-func (c *dataKeeperServiceClient) AddData(ctx context.Context, in *AddDataRequest, opts ...grpc.CallOption) (*AddDataResponse, error) {
+func (c *dataKeeperServiceClient) SaveData(ctx context.Context, in *SaveDataRequest, opts ...grpc.CallOption) (*UploadStatus, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddDataResponse)
-	err := c.cc.Invoke(ctx, DataKeeperService_AddData_FullMethodName, in, out, cOpts...)
+	out := new(UploadStatus)
+	err := c.cc.Invoke(ctx, DataKeeperService_SaveData_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *dataKeeperServiceClient) GetData(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GetDataRequest, GetDataResponse], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &DataKeeperService_ServiceDesc.Streams[0], DataKeeperService_GetData_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[GetDataRequest, GetDataResponse]{ClientStream: stream}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type DataKeeperService_GetDataClient = grpc.BidiStreamingClient[GetDataRequest, GetDataResponse]
-
-func (c *dataKeeperServiceClient) ListData(ctx context.Context, in *ListDataRequest, opts ...grpc.CallOption) (*ListDataResponse, error) {
+func (c *dataKeeperServiceClient) GetDataList(ctx context.Context, in *ListDataRequest, opts ...grpc.CallOption) (*ListDataResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListDataResponse)
-	err := c.cc.Invoke(ctx, DataKeeperService_ListData_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, DataKeeperService_GetDataList_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *dataKeeperServiceClient) DeleteData(ctx context.Context, in *DeleteDataRequest, opts ...grpc.CallOption) (*DeleteDataResponse, error) {
+func (c *dataKeeperServiceClient) DeleteData(ctx context.Context, in *DeleteDataRequest, opts ...grpc.CallOption) (*UploadStatus, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteDataResponse)
+	out := new(UploadStatus)
 	err := c.cc.Invoke(ctx, DataKeeperService_DeleteData_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -109,7 +95,7 @@ func (c *dataKeeperServiceClient) GetFileList(ctx context.Context, in *ListFileR
 
 func (c *dataKeeperServiceClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileChunk, UploadStatus], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &DataKeeperService_ServiceDesc.Streams[1], DataKeeperService_UploadFile_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &DataKeeperService_ServiceDesc.Streams[0], DataKeeperService_UploadFile_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +105,25 @@ func (c *dataKeeperServiceClient) UploadFile(ctx context.Context, opts ...grpc.C
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DataKeeperService_UploadFileClient = grpc.ClientStreamingClient[FileChunk, UploadStatus]
+
+func (c *dataKeeperServiceClient) GetFile(ctx context.Context, in *GetFileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[FileChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DataKeeperService_ServiceDesc.Streams[1], DataKeeperService_GetFile_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetFileRequest, FileChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DataKeeperService_GetFileClient = grpc.ServerStreamingClient[FileChunk]
 
 func (c *dataKeeperServiceClient) DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*UploadStatus, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -137,14 +142,13 @@ func (c *dataKeeperServiceClient) DeleteFile(ctx context.Context, in *DeleteFile
 // Определение gRPC-сервиса для управления данными
 type DataKeeperServiceServer interface {
 	// Хранение новых данных на сервере (кроме файлов)
-	AddData(context.Context, *AddDataRequest) (*AddDataResponse, error)
-	// Запрос данных с сервера
-	GetData(grpc.BidiStreamingServer[GetDataRequest, GetDataResponse]) error
-	ListData(context.Context, *ListDataRequest) (*ListDataResponse, error)
-	DeleteData(context.Context, *DeleteDataRequest) (*DeleteDataResponse, error)
+	SaveData(context.Context, *SaveDataRequest) (*UploadStatus, error)
+	GetDataList(context.Context, *ListDataRequest) (*ListDataResponse, error)
+	DeleteData(context.Context, *DeleteDataRequest) (*UploadStatus, error)
 	// Отправка файлов на сервер
 	GetFileList(context.Context, *ListFileRequest) (*ListFileResponse, error)
 	UploadFile(grpc.ClientStreamingServer[FileChunk, UploadStatus]) error
+	GetFile(*GetFileRequest, grpc.ServerStreamingServer[FileChunk]) error
 	DeleteFile(context.Context, *DeleteFileRequest) (*UploadStatus, error)
 }
 
@@ -155,16 +159,13 @@ type DataKeeperServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDataKeeperServiceServer struct{}
 
-func (UnimplementedDataKeeperServiceServer) AddData(context.Context, *AddDataRequest) (*AddDataResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddData not implemented")
+func (UnimplementedDataKeeperServiceServer) SaveData(context.Context, *SaveDataRequest) (*UploadStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveData not implemented")
 }
-func (UnimplementedDataKeeperServiceServer) GetData(grpc.BidiStreamingServer[GetDataRequest, GetDataResponse]) error {
-	return status.Errorf(codes.Unimplemented, "method GetData not implemented")
+func (UnimplementedDataKeeperServiceServer) GetDataList(context.Context, *ListDataRequest) (*ListDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDataList not implemented")
 }
-func (UnimplementedDataKeeperServiceServer) ListData(context.Context, *ListDataRequest) (*ListDataResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListData not implemented")
-}
-func (UnimplementedDataKeeperServiceServer) DeleteData(context.Context, *DeleteDataRequest) (*DeleteDataResponse, error) {
+func (UnimplementedDataKeeperServiceServer) DeleteData(context.Context, *DeleteDataRequest) (*UploadStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteData not implemented")
 }
 func (UnimplementedDataKeeperServiceServer) GetFileList(context.Context, *ListFileRequest) (*ListFileResponse, error) {
@@ -172,6 +173,9 @@ func (UnimplementedDataKeeperServiceServer) GetFileList(context.Context, *ListFi
 }
 func (UnimplementedDataKeeperServiceServer) UploadFile(grpc.ClientStreamingServer[FileChunk, UploadStatus]) error {
 	return status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
+}
+func (UnimplementedDataKeeperServiceServer) GetFile(*GetFileRequest, grpc.ServerStreamingServer[FileChunk]) error {
+	return status.Errorf(codes.Unimplemented, "method GetFile not implemented")
 }
 func (UnimplementedDataKeeperServiceServer) DeleteFile(context.Context, *DeleteFileRequest) (*UploadStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteFile not implemented")
@@ -196,45 +200,38 @@ func RegisterDataKeeperServiceServer(s grpc.ServiceRegistrar, srv DataKeeperServ
 	s.RegisterService(&DataKeeperService_ServiceDesc, srv)
 }
 
-func _DataKeeperService_AddData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddDataRequest)
+func _DataKeeperService_SaveData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveDataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DataKeeperServiceServer).AddData(ctx, in)
+		return srv.(DataKeeperServiceServer).SaveData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DataKeeperService_AddData_FullMethodName,
+		FullMethod: DataKeeperService_SaveData_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataKeeperServiceServer).AddData(ctx, req.(*AddDataRequest))
+		return srv.(DataKeeperServiceServer).SaveData(ctx, req.(*SaveDataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DataKeeperService_GetData_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(DataKeeperServiceServer).GetData(&grpc.GenericServerStream[GetDataRequest, GetDataResponse]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type DataKeeperService_GetDataServer = grpc.BidiStreamingServer[GetDataRequest, GetDataResponse]
-
-func _DataKeeperService_ListData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _DataKeeperService_GetDataList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListDataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DataKeeperServiceServer).ListData(ctx, in)
+		return srv.(DataKeeperServiceServer).GetDataList(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DataKeeperService_ListData_FullMethodName,
+		FullMethod: DataKeeperService_GetDataList_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataKeeperServiceServer).ListData(ctx, req.(*ListDataRequest))
+		return srv.(DataKeeperServiceServer).GetDataList(ctx, req.(*ListDataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -282,6 +279,17 @@ func _DataKeeperService_UploadFile_Handler(srv interface{}, stream grpc.ServerSt
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DataKeeperService_UploadFileServer = grpc.ClientStreamingServer[FileChunk, UploadStatus]
 
+func _DataKeeperService_GetFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetFileRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DataKeeperServiceServer).GetFile(m, &grpc.GenericServerStream[GetFileRequest, FileChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DataKeeperService_GetFileServer = grpc.ServerStreamingServer[FileChunk]
+
 func _DataKeeperService_DeleteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteFileRequest)
 	if err := dec(in); err != nil {
@@ -308,12 +316,12 @@ var DataKeeperService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DataKeeperServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AddData",
-			Handler:    _DataKeeperService_AddData_Handler,
+			MethodName: "SaveData",
+			Handler:    _DataKeeperService_SaveData_Handler,
 		},
 		{
-			MethodName: "ListData",
-			Handler:    _DataKeeperService_ListData_Handler,
+			MethodName: "GetDataList",
+			Handler:    _DataKeeperService_GetDataList_Handler,
 		},
 		{
 			MethodName: "DeleteData",
@@ -330,15 +338,14 @@ var DataKeeperService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "GetData",
-			Handler:       _DataKeeperService_GetData_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
 			StreamName:    "UploadFile",
 			Handler:       _DataKeeperService_UploadFile_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "GetFile",
+			Handler:       _DataKeeperService_GetFile_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "proto/api/service/v1/service.proto",

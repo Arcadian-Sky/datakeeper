@@ -3,7 +3,7 @@ package client
 import (
 	"fmt"
 	"os"
-	"time"
+	"strconv"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/client"
 	"github.com/Arcadian-Sky/datakkeeper/internal/model"
@@ -18,8 +18,6 @@ type Person struct {
 	authForm     *tview.Form
 	registerForm *tview.Form
 	Form         *tview.Form
-	token        string
-	bucket       string
 }
 
 type Data struct {
@@ -151,14 +149,17 @@ func (app *App) initDataInterfaces() {
 	})
 	app.data.list.AddItem("Load Files", "", 'f', func() {
 		app.logView.Clear()
-		err := app.loadData()
+		err := app.loadFiles()
 		if err != nil {
 			app.log.Info("Error loading data: ", err)
 		}
 	})
 	app.data.list.AddItem("Load Data", "", 'f', func() {
 		app.logView.Clear()
-		app.pages.SwitchToPage("datalist")
+		err := app.loadData()
+		if err != nil {
+			app.log.Info("Error loading data: ", err)
+		}
 	})
 
 	// Создаем форму для отправки данных
@@ -202,11 +203,15 @@ func (app *App) initDataInterfaces() {
 		AddInputField("Login", "", 20, nil, nil).
 		AddPasswordField("Password", "", 20, '*', nil).
 		AddButton("Submit", func() { // Кнопка "Submit"
-			domain := app.person.registerForm.GetFormItem(0).(*tview.InputField).GetText()
-			login := app.person.registerForm.GetFormItem(1).(*tview.InputField).GetText()
-			password := app.person.registerForm.GetFormItem(2).(*tview.InputField).GetText()
+			domain := app.data.sendLoginPassForm.GetFormItem(0).(*tview.InputField).GetText()
+			login := app.data.sendLoginPassForm.GetFormItem(1).(*tview.InputField).GetText()
+			password := app.data.sendLoginPassForm.GetFormItem(2).(*tview.InputField).GetText()
 
-			app.log.Info(fmt.Printf("Login: %s, Password: %s\n, Domain: %s\n", login, password, domain))
+			app.log.Info(fmt.Printf("Login: %s, Password: %s\n, Domain: %s\n", login, "*****", domain))
+
+			if err := app.client.SaveLoginPass(domain, login, password); err != nil {
+				app.log.Info(fmt.Println("Error saveing login pass:", err))
+			}
 		}).
 		AddButton("Quit", func() {
 			app.pages.SwitchToPage("main")
@@ -223,10 +228,13 @@ func (app *App) initDataInterfaces() {
 			return (lastChar >= '0' && lastChar <= '9') || lastChar == ' '
 		}, nil).
 		AddButton("Submit", func() {
-			domain := app.person.registerForm.GetFormItem(0).(*tview.InputField).GetText()
-			card := app.person.registerForm.GetFormItem(1).(*tview.InputField).GetText()
+			domain := app.data.sendCardForm.GetFormItem(0).(*tview.InputField).GetText()
+			card := app.data.sendCardForm.GetFormItem(1).(*tview.InputField).GetText()
 
 			app.log.Info(fmt.Printf("Title: %s, Card: %s\n", domain, card))
+			if err := app.client.SaveCard(domain, card); err != nil {
+				app.log.Info(fmt.Println("Error saveing login pass:", err))
+			}
 		}).
 		AddButton("Cancel", func() {
 			app.pages.SwitchToPage("main")
@@ -313,9 +321,6 @@ func (app *App) initPages() {
 	// Перенаправляем вывод логов в TextView
 	app.log.SetOutput(app.logView)
 	app.log.Info("Welcome to the application!")
-	// Пример вывода в лог
-	// log.Println("Application started")
-	// fmt.Fprintf(app.logView, "Welcome to the application!\n")
 
 	// Flex для размещения логов и страниц
 	flex := tview.NewFlex().
@@ -337,26 +342,54 @@ func isTokenValid() bool {
 	return false
 }
 
-// Симуляция сохранения нового токена после успешной авторизации
-func saveNewToken() {
-	// Логика сохранения токена (например, запись в файл/БД)
-	// Здесь просто пример с сохранением времени
-	fmt.Println("Новый токен сохранен:", time.Now())
-}
-
-// Вызов клиента для получения данных
+// Вызов клиента для получения данных из бд
 func (app *App) loadData() error {
-	data, err := app.client.GetFileList()
+	data, err := app.client.GetDataList()
 	if err != nil {
-		return fmt.Errorf("error creating stream: %v", err)
+		return fmt.Errorf("error client GetDataList: %v", err)
 	}
 
 	// Обновление интерфейса на основе полученных данных
 	app.updateDatalistPage(data)
 	return nil
 }
+func (app *App) updateDatalistPage(data []model.Data) {
 
-func (app *App) updateDatalistPage(data []model.FileItem) {
+	list := tview.NewList()
+	// Создание кнопки "Назад"
+	list.AddItem("Назад", "", 'q', func() {
+		app.logView.Clear()
+		app.pages.SwitchToPage("datalist")
+	})
+
+	// Заполнение таблицы данными
+	for _, item := range data {
+		list.AddItem(item.Title, item.Type, 0, func() {
+			app.logView.Clear()
+			// Переход к форме с действиями
+			app.createDetailForm(item)
+		})
+
+	}
+
+	// Добавление Flex как страницы
+	app.pages.AddPage("datalistmove", list, true, false)
+	app.pages.SwitchToPage("datalistmove")
+}
+
+// Вызов клиента для получения данных файлов
+func (app *App) loadFiles() error {
+	data, err := app.client.GetFileList()
+	if err != nil {
+		return fmt.Errorf("error creating stream: %v", err)
+	}
+
+	// Обновление интерфейса на основе полученных данных
+	app.updateFileDatalistPage(data)
+	return nil
+}
+
+func (app *App) updateFileDatalistPage(data []model.FileItem) {
 
 	list := tview.NewList()
 	// Создание кнопки "Назад"
@@ -394,16 +427,52 @@ func (app *App) createMoveForm(id string, name, desc string) {
 		}).
 		AddButton("Получить", func() {
 			app.logView.Clear()
+			err := app.client.GetFile(name)
+			if err != nil {
+				app.log.Info("Error client GetFile: ", err)
+				return
+			}
 			fmt.Printf("Получить нажато для ID: %v\n", id)
 		}).
 		AddButton("Удалить", func() {
 			app.logView.Clear()
 			err := app.client.DeleteFile(name)
 			if err != nil {
-				app.log.Info("Error client Authentificate: ", err)
+				app.log.Info("Error client DeleteFile: ", err)
 				return
 			}
 			fmt.Printf("Удалить нажато для ID: %v\n", id)
+			app.pages.SwitchToPage("datalist") // Возвращаемся к списку
+		})
+
+	// Устанавливаем форму как корневой элемент интерфейса
+	app.pages.AddPage("datalistmoveaction", actionForm, true, false)
+	app.pages.SwitchToPage("datalistmoveaction")
+}
+
+func (app *App) createDetailForm(item model.Data) {
+	// Создаем форму с действиями
+	actionForm := tview.NewForm()
+	actionForm.
+		AddTextView("Name", item.Title, 0, 1, false, false).               // Показываем имя
+		AddTextView("ID", strconv.Itoa(int(item.ID)), 0, 1, false, false). // Показываем ID
+		AddTextView("type", item.Type, 0, 1, false, false).                // Показываем ID
+		AddTextView("Card", item.Card, 0, 1, false, false).                // Показываем ID
+		AddTextView("Login", item.Login, 0, 1, false, false).              // Показываем ID
+		AddTextView("Pass", item.Password, 0, 1, false, false).            // Показываем ID
+		AddButton("Назад", func() {
+			app.logView.Clear()
+			app.pages.SwitchToPage("datalist") // Возвращаемся к списку
+		}).
+		AddButton("Удалить", func() {
+			app.logView.Clear()
+			fmt.Printf("Удалить нажато для ID: %v\n", item.ID)
+			err := app.client.Delete(item.ID)
+			if err != nil {
+				app.log.Info("Error delete item: ", err)
+				return
+			}
+			app.pages.SwitchToPage("datalist") // Возвращаемся к списку
 		})
 
 	// Устанавливаем форму как корневой элемент интерфейса

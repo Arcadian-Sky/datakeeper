@@ -36,11 +36,6 @@ func NewMinioStorage() (*minio.Client, error) {
 	return client, nil
 }
 func TestFileRepo_GetFileList(t *testing.T) {
-	type args struct {
-		ctx  context.Context
-		user *model.User
-		data model.Data
-	}
 
 	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	ctx, cancel := context.WithCancel(context.Background())

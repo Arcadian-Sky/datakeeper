@@ -20,7 +20,7 @@ import (
 
 type Workers struct {
 	userRepo repository.UserRepository
-	// dataRepo repository.DataRepository
+	dataRepo repository.DataRepository
 	fileRepo repository.FileRepository
 }
 type App struct {
@@ -154,8 +154,16 @@ func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *lo
 	return client, nil
 }
 
+func (app *App) SetDataRepo(dR repository.DataRepository) {
+	app.Workers.dataRepo = dR
+}
+
+func (app *App) GetDataRepo() *repository.DataRepository {
+	return &app.Workers.dataRepo
+}
+
 // Репозиторий по работе с пользователем
-func (app *App) SetDBPGRepo(uR repository.UserRepository) {
+func (app *App) SetUserRepo(uR repository.UserRepository) {
 	app.Workers.userRepo = uR
 }
 func (app *App) GetUserRepo() *repository.UserRepository {

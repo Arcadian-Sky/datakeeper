@@ -20,16 +20,12 @@ enum DataType {
 }
 
 message Data {
-  string name = 1;
+  string title = 1;
   DataType type = 2;
-  bytes data = 3;
-  bytes keyHash = 4;
-  int64 ID = 5;
-}
-
-message DataItem {
-  string name = 1;
-  int64 ID = 2;
+  string login = 3;
+  string password = 4;
+  string card = 5;
+  int64 id = 6;
 }
 
 message FileItem {
@@ -37,51 +33,52 @@ message FileItem {
   string key = 2;
 }
 
+message GetFileRequest {string name = 1;}
+// Мписок файлов
+message ListFileRequest {}
+message ListFileResponse {repeated FileItem fileitem = 1;}
+
+// Загрузка файла
 // Сообщение, представляющее собой часть файла
 message FileChunk {
   bytes data = 1;  // Содержимое файла
   string filename = 2; // Имя файла (передается один раз в начале)
 }
-// Статус загрузки
+// Команда удаления файла
+message DeleteFileRequest {
+  string filename = 1;
+}
+
+// Статус ответа - загрузки/сохранения/удаления
 message UploadStatus {
   bool success = 1;
   string message = 2;
 }
-// Команда удаления файла
-message DeleteFileRequest {
-  string fileName = 1;
-}
 
-// Добавление
-message AddDataRequest {Data data = 1;}
-message AddDataResponse {string response = 1;}
+// Сохранение
+message SaveDataRequest {Data data = 1;}
 
-// ПОлучение
-message GetDataRequest {int64 dataID = 1;}
+// Получение
+message GetDataRequest {int64 dataid = 1;}
 message GetDataResponse {Data data = 1;}
 // Список
-message ListDataResponse {repeated DataItem dataItem = 1;}
-message ListDataRequest {string type = 1;}
+message ListDataRequest {DataType type = 1;}
+message ListDataResponse {repeated Data data = 1;}
 // Удаление
-message DeleteDataRequest {int64 dataID = 1;}
-message DeleteDataResponse {string response = 1;}
+message DeleteDataRequest {int64 dataid = 1;}
 
-message ListFileRequest {}
-message ListFileResponse {repeated FileItem fileItem = 1;}
 
 // Определение gRPC-сервиса для управления данными
 service DataKeeperService {  
   // Хранение новых данных на сервере (кроме файлов)
-  rpc AddData(AddDataRequest) returns (AddDataResponse) {}
-  
-  // Запрос данных с сервера
-  rpc GetData(stream GetDataRequest) returns (stream GetDataResponse) {}
-  rpc ListData(ListDataRequest) returns (ListDataResponse) {}
-  rpc DeleteData(DeleteDataRequest) returns (DeleteDataResponse) {}
+  rpc SaveData(SaveDataRequest) returns (UploadStatus) {}
+  rpc GetDataList(ListDataRequest) returns (ListDataResponse) {}
+  rpc DeleteData(DeleteDataRequest) returns (UploadStatus) {}
   
   // Отправка файлов на сервер
   rpc GetFileList(ListFileRequest) returns (ListFileResponse) {}
   rpc UploadFile(stream FileChunk) returns (UploadStatus){}
+  rpc GetFile(GetFileRequest) returns (stream FileChunk){}
   rpc DeleteFile(DeleteFileRequest) returns (UploadStatus){}
 }
 

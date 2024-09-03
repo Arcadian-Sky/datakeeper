@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -13,6 +15,7 @@ import (
 )
 
 type FileRepository interface {
+	GetFile(ctx context.Context, fileId string, user *model.User) (*os.File, error)
 	GetFileList(ctx context.Context, user *model.User) ([]model.FileItem, error)
 	DeleteFile(ctx context.Context, fileId string, user *model.User) error
 	UploadFile(ctx context.Context, user *model.User, objectName string, file *os.File) error
@@ -61,6 +64,51 @@ func (f *FileRepo) CreateContainer(ctx context.Context, user *model.User) (model
 	}
 
 	return *user, nil
+}
+
+func (f *FileRepo) GetFile(ctx context.Context, fileId string, user *model.User) (*os.File, error) {
+	if user.ID == 0 {
+		return nil, model.ErrCreateBucketNoUser
+	}
+
+	bucketName := "bucketuid" + strconv.Itoa(int(user.ID))
+
+	// Create a temporary file to store the downloaded file
+	tempFile, err := os.CreateTemp("", "minio_file_*.tmp")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp file: %v", err)
+	}
+
+	defer func() {
+		if err != nil {
+			os.Remove(tempFile.Name()) // Clean up on error
+		}
+	}()
+
+	// Get the object from MinIO
+	object, err := f.db.GetObject(ctx, bucketName, fileId, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object from minio: %v", err)
+	}
+	defer object.Close()
+
+	// Write the object to the temporary file
+	if _, err = io.Copy(tempFile, object); err != nil {
+		return nil, fmt.Errorf("failed to write object to temp file: %v", err)
+	}
+
+	// Ensure the file is properly closed and ready for use
+	if err := tempFile.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close temp file: %v", err)
+	}
+
+	// Reopen the file for reading
+	reopenedFile, err := os.Open(filepath.Clean(tempFile.Name()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to reopen temp file: %v", err)
+	}
+
+	return reopenedFile, nil
 }
 
 // Операции с объектами

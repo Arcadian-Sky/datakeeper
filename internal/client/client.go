@@ -186,7 +186,7 @@ func (gc *GRPCClient) GetFileList() ([]model.FileItem, error) {
 		return data, err
 	}
 	gc.log.Trace(res)
-	for _, item := range res.FileItem {
+	for _, item := range res.Fileitem {
 		data = append(data, model.FileItem{
 			Hash: item.Key,
 			Name: item.Name,
@@ -206,7 +206,7 @@ func (gc *GRPCClient) DeleteFile(fileName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	req := &pbsrv.DeleteFileRequest{
-		FileName: fileName,
+		Filename: fileName,
 	}
 	// Отправляем запрос на сервер
 	res, err := gc.Data.DeleteFile(ctx, req)
@@ -263,6 +263,146 @@ func (gc *GRPCClient) UploadFile(filePath string) error {
 	}
 
 	gc.log.Info("Upload status:", status.Success, ", message: ", status.Message)
+
+	return nil
+}
+
+func (gc *GRPCClient) GetFile(fileName string) error {
+
+	stream, err := gc.Data.GetFile(context.Background(), &pbsrv.GetFileRequest{Name: fileName})
+	if err != nil {
+		gc.log.Fatalf("Ошибка при вызове GetFile: %v", err)
+	}
+
+	filePath := filepath.Join(gc.Storage.PfilesDir, fileName)
+	// Создаём файл для записи полученных данных
+	file, err := os.Create(filePath)
+	if err != nil {
+		gc.log.Trace("Не удалось создать файл: ", err)
+		return err
+	}
+	defer file.Close()
+
+	// Читаем поток данных и записываем в файл
+	for {
+		chunk, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			gc.log.Trace("Ошибка при получении данных: ", err)
+			return err
+		}
+		_, err = file.Write(chunk.Data)
+		if err != nil {
+			gc.log.Trace("Не удалось записать в файл: ", err)
+			return err
+		}
+	}
+	gc.log.Info("Файл успешно получен и сохранён:", filePath)
+	return nil
+}
+
+func (gc *GRPCClient) SaveLoginPass(domain, login, pass string) error {
+	if gc.Data == nil {
+		return fmt.Errorf("GRPC client is not initialized")
+	}
+	// Создаем контекст с таймаутом для запроса
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	res, err := gc.Data.SaveData(ctx, &pbsrv.SaveDataRequest{
+		Data: &pbsrv.Data{
+			Type:     pbsrv.DataType_DATA_TYPE_TYPE_LOGIN_PASSWORD,
+			Password: pass,
+			Login:    login,
+			Title:    domain,
+		},
+	})
+
+	if err != nil {
+		gc.log.Debug("Error during save file : ", err)
+		return err
+	}
+	gc.log.Trace(res)
+
+	return nil
+}
+
+func (gc *GRPCClient) SaveCard(title, card string) error {
+
+	if gc.Data == nil {
+		return fmt.Errorf("GRPC client is not initialized")
+	}
+
+	// Создаем контекст с таймаутом для запроса
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	res, err := gc.Data.SaveData(ctx, &pbsrv.SaveDataRequest{
+		Data: &pbsrv.Data{
+			Type:  pbsrv.DataType_DATA_TYPE_TYPE_CREDIT_CARD,
+			Card:  card,
+			Title: title,
+		},
+	})
+
+	if err != nil {
+		gc.log.Debug("Error during save file : ", err)
+		return err
+	}
+	gc.log.Trace(res)
+
+	return nil
+}
+
+func (gc *GRPCClient) GetDataList() ([]model.Data, error) {
+	var data []model.Data
+	if gc.Data == nil {
+		return data, fmt.Errorf("GRPC client is not initialized")
+	}
+
+	// Создаем контекст с таймаутом для запроса
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req := &pbsrv.ListDataRequest{}
+	// Отправляем запрос на сервер
+	res, err := gc.Data.GetDataList(ctx, req)
+	if err != nil {
+		gc.log.Debug("Error during get list of files : ", err)
+		return data, err
+	}
+
+	gc.log.Trace(res)
+	for _, item := range res.Data {
+		data = append(data, model.Data{
+			ID:       item.Id,
+			Title:    item.Title,
+			Type:     item.Type.String(),
+			Login:    item.Login,
+			Card:     item.Card,
+			Password: item.Password,
+		})
+	}
+
+	return data, nil
+}
+
+func (gc *GRPCClient) Delete(id int64) error {
+	// Создаем контекст с таймаутом для запроса
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req := &pbsrv.DeleteDataRequest{
+		Dataid: id,
+	}
+
+	// Отправляем запрос на сервер
+	res, err := gc.Data.DeleteData(ctx, req)
+	if err != nil {
+		gc.log.Debug("Error during get list of files : ", err)
+		return err
+	}
+
+	gc.log.Trace(res)
 
 	return nil
 }

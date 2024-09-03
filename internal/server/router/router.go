@@ -57,7 +57,7 @@ func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.
 	return ob, nil
 }
 
-var (
+const (
 	FormatErrUserRegisterUserFailed      = "failed to register user (Register): %s"
 	FormatErrUserRegisterContainerFailed = "failed to register user (CreateContainer): %s"
 	FormatErrUserRegisterTokenFailed     = "failed to register user (cant generate token): %s"

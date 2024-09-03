@@ -1,10 +1,10 @@
 name: build binarys
 
 on:
+  pull_request:
   push:
     branches:
       - main
-      - dev
 
 jobs:
   build-linux:

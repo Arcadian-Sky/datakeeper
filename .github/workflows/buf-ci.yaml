@@ -1,8 +1,9 @@
 name: Buf CI
 on:
-  push:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+  push:
+    branches:
+      - main
   delete:
 permissions:
   contents: read
@@ -12,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+            sudo apt-get clean
+            sudo apt-get update
+            sudo apt-get install -y libgtk-3-dev pkg-config
       - uses: bufbuild/buf-action@v1
         with:
           token: ${{ secrets.BUF_TOKEN }}

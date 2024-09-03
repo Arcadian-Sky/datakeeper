@@ -68,8 +68,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 
 	id, err := s.repouser.Register(ctx, &user)
 	if err != nil {
-		e := fmt.Sprintf("failed to register user (Register): %s", err.Error())
-		return nil, status.Errorf(getCode(err), e)
+		return nil, status.Errorf(getCode(err), fmt.Sprintf("failed to register user (Register): %s", err.Error()))
 	}
 	str := fmt.Sprintf("user %s (userid: %d) was created\n", user.Login, id)
 	r += str
@@ -78,8 +77,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	user.ID = id
 	_, err = s.reposervice.CreateContainer(ctx, &user)
 	if err != nil {
-		e := fmt.Sprintf("failed to register user (CreateContainer): %s", err.Error())
-		return nil, status.Errorf(getCode(err), e)
+		return nil, status.Errorf(getCode(err), fmt.Sprintf("failed to register user (CreateContainer): %s", err.Error()))
 	}
 	str = fmt.Sprintf("bucket container %s (userid: %d) was created\n", user.Bucket, id)
 	r += str
@@ -88,8 +86,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	// generate JWT
 	userJWT, err := jwtrule.Generate(user.ID, s.cfg.SecretKey)
 	if err != nil {
-		e := fmt.Sprintf("cant generate token: %s", err.Error())
-		return nil, status.Errorf(codes.Internal, e)
+		return nil, status.Errorf(codes.Internal, fmt.Sprintf("cant generate token: %s", err.Error()))
 	}
 
 	bSuccess := false
@@ -402,9 +399,9 @@ func getCode(e error) codes.Code {
 
 func getPType(stype string) pbservice.DataType {
 	switch stype {
-	case repository.DataType_CARD:
+	case repository.DataTypeCARD:
 		return pbservice.DataType_DATA_TYPE_TYPE_CREDIT_CARD
-	case repository.DataType_LOGPASS:
+	case repository.DataTypeLOGPASS:
 		return pbservice.DataType_DATA_TYPE_TYPE_LOGIN_PASSWORD
 	}
 
@@ -414,9 +411,9 @@ func getPType(stype string) pbservice.DataType {
 func getType(stype pbservice.DataType) string {
 	switch int(stype.Number()) {
 	case int(pbservice.DataType_DATA_TYPE_TYPE_CREDIT_CARD):
-		return repository.DataType_CARD
+		return repository.DataTypeCARD
 	case int(pbservice.DataType_DATA_TYPE_TYPE_LOGIN_PASSWORD):
-		return repository.DataType_LOGPASS
+		return repository.DataTypeLOGPASS
 	}
 
 	return ""

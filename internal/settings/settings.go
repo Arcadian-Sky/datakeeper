@@ -50,8 +50,8 @@ func Parse() *InitedFlags {
 		dbMdSettings = envRunDBSettings
 	}
 
-	envRunFileStorageUri := os.Getenv("FILE_DATABASE_URI")
-	envRunFileStorageAccKeyId := os.Getenv("FILE_DATABASE_ACCESS_KEY")
+	envRunFileStorageURI := os.Getenv("FILE_DATABASE_URI")
+	envRunFileStorageAccKeyID := os.Getenv("FILE_DATABASE_ACCESS_KEY")
 	envRunFileStorageSecret := os.Getenv("FILE_DATABASE_SECRET")
 
 	// Длина ключа в байтах (например, 32 байта = 256 бит)
@@ -66,8 +66,8 @@ func Parse() *InitedFlags {
 		DBMGSettings: dbMdSettings,
 		SecretKey:    secretKey,
 		Storage: Storage{
-			Endpoint:    envRunFileStorageUri,
-			AccessKeyID: envRunFileStorageAccKeyId,
+			Endpoint:    envRunFileStorageURI,
+			AccessKeyID: envRunFileStorageAccKeyID,
 			Secret:      envRunFileStorageSecret,
 		},
 	}

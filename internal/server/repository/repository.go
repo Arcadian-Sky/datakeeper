@@ -15,9 +15,9 @@ import (
 )
 
 type FileRepository interface {
-	GetFile(ctx context.Context, fileId string, user *model.User) (*os.File, error)
+	GetFile(ctx context.Context, fileID string, user *model.User) (*os.File, error)
 	GetFileList(ctx context.Context, user *model.User) ([]model.FileItem, error)
-	DeleteFile(ctx context.Context, fileId string, user *model.User) error
+	DeleteFile(ctx context.Context, fileID string, user *model.User) error
 	UploadFile(ctx context.Context, user *model.User, objectName string, file *os.File) error
 
 	Save(ctx context.Context, user model.User, data model.Data) (int64, error)
@@ -66,7 +66,7 @@ func (f *FileRepo) CreateContainer(ctx context.Context, user *model.User) (model
 	return *user, nil
 }
 
-func (f *FileRepo) GetFile(ctx context.Context, fileId string, user *model.User) (*os.File, error) {
+func (f *FileRepo) GetFile(ctx context.Context, fileID string, user *model.User) (*os.File, error) {
 	if user.ID == 0 {
 		return nil, model.ErrCreateBucketNoUser
 	}
@@ -86,7 +86,7 @@ func (f *FileRepo) GetFile(ctx context.Context, fileId string, user *model.User)
 	}()
 
 	// Get the object from MinIO
-	object, err := f.db.GetObject(ctx, bucketName, fileId, minio.GetObjectOptions{})
+	object, err := f.db.GetObject(ctx, bucketName, fileID, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get object from minio: %v", err)
 	}

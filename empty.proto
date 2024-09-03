@@ -1,5 +1,0 @@
-syntax = "proto3";
-
-package proto.empty;
-
-option go_package = "internal/empty";

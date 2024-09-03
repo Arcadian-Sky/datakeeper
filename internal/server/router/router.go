@@ -57,6 +57,12 @@ func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.
 	return ob, nil
 }
 
+var (
+	FormatErrUserRegisterUserFailed      = "failed to register user (Register): %s"
+	FormatErrUserRegisterContainerFailed = "failed to register user (CreateContainer): %s"
+	FormatErrUserRegisterTokenFailed     = "failed to register user (cant generate token): %s"
+)
+
 // Регистрация нового пользователя.
 func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (*pbuser.RegisterResponse, error) {
 	if in.Login == `` {
@@ -68,7 +74,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 
 	id, err := s.repouser.Register(ctx, &user)
 	if err != nil {
-		return nil, status.Errorf(getCode(err), "failed to register user (Register): "+err.Error())
+		return nil, status.Errorf(getCode(err), fmt.Sprintf(FormatErrUserRegisterUserFailed, err.Error()))
 	}
 	str := fmt.Sprintf("user %s (userid: %d) was created\n", user.Login, id)
 	r += str
@@ -77,7 +83,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	user.ID = id
 	_, err = s.reposervice.CreateContainer(ctx, &user)
 	if err != nil {
-		return nil, status.Errorf(getCode(err), "failed to register user (CreateContainer): "+err.Error())
+		return nil, status.Errorf(getCode(err), fmt.Sprintf(FormatErrUserRegisterContainerFailed, err.Error()))
 	}
 	str = fmt.Sprintf("bucket container %s (userid: %d) was created\n", user.Bucket, id)
 	r += str
@@ -86,7 +92,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	// generate JWT
 	userJWT, err := jwtrule.Generate(user.ID, s.cfg.SecretKey)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "cant generate token: "+err.Error())
+		return nil, status.Errorf(codes.Internal, fmt.Sprintf(FormatErrUserRegisterTokenFailed, err.Error()))
 	}
 
 	bSuccess := false

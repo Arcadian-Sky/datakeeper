@@ -57,12 +57,6 @@ func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.
 	return ob, nil
 }
 
-const (
-	FormatErrUserRegisterUserFailed      = "failed to register user (Register): %s"
-	FormatErrUserRegisterContainerFailed = "failed to register user (CreateContainer): %s"
-	FormatErrUserRegisterTokenFailed     = "failed to register user (cant generate token): %s"
-)
-
 // Регистрация нового пользователя.
 func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (*pbuser.RegisterResponse, error) {
 	if in.Login == `` {
@@ -74,7 +68,8 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 
 	id, err := s.repouser.Register(ctx, &user)
 	if err != nil {
-		return nil, status.Errorf(getCode(err), fmt.Sprintf(FormatErrUserRegisterUserFailed, err.Error()))
+		e := fmt.Sprintf("failed to register user (Register): %s", err.Error())
+		return nil, status.Errorf(codes.Internal, e)
 	}
 	str := fmt.Sprintf("user %s (userid: %d) was created\n", user.Login, id)
 	r += str
@@ -83,7 +78,8 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	user.ID = id
 	_, err = s.reposervice.CreateContainer(ctx, &user)
 	if err != nil {
-		return nil, status.Errorf(getCode(err), fmt.Sprintf(FormatErrUserRegisterContainerFailed, err.Error()))
+		e := fmt.Sprintf("failed to register user (CreateContainer): %s", err.Error())
+		return nil, status.Errorf(codes.Internal, e)
 	}
 	str = fmt.Sprintf("bucket container %s (userid: %d) was created\n", user.Bucket, id)
 	r += str
@@ -92,7 +88,8 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	// generate JWT
 	userJWT, err := jwtrule.Generate(user.ID, s.cfg.SecretKey)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, fmt.Sprintf(FormatErrUserRegisterTokenFailed, err.Error()))
+		e := fmt.Sprintf("cant generate token: %s", err.Error())
+		return nil, status.Errorf(codes.Unauthenticated, e)
 	}
 
 	bSuccess := false
@@ -125,7 +122,7 @@ func (s *GRPCServer) Authenticate(ctx context.Context, in *pbuser.AuthenticateRe
 	if err != nil {
 		e := fmt.Sprintf("cant generate token: %s", err.Error())
 		s.log.Info(e)
-		return nil, status.Errorf(codes.Internal, "cant generate token: "+err.Error())
+		return nil, status.Errorf(codes.Internal, e)
 	}
 
 	mess += "token generated"
@@ -221,6 +218,7 @@ func (s *GRPCServer) UploadFile(stream pbservice.DataKeeperService_UploadFileSer
 	if err != nil {
 		return fmt.Errorf("failed to SetLastUpdate: %v", err)
 	}
+
 	// Send response to client
 	return stream.SendAndClose(&pbservice.UploadStatus{
 		Success: true,
@@ -298,7 +296,8 @@ func (s *GRPCServer) GetDataList(ctx context.Context, in *pbservice.ListDataRequ
 	}
 	data, err := s.repodata.GetList(ctx, user)
 	if err != nil {
-		return nil, status.Errorf(getCode(err), "failed to list pdata: "+err.Error())
+		e := fmt.Sprintf("failed to list pdata: %s", err.Error())
+		return nil, status.Errorf(codes.Aborted, e)
 	}
 
 	var pdataPointers []*pbservice.Data
@@ -328,7 +327,7 @@ func (s *GRPCServer) DeleteFile(ctx context.Context, in *pbservice.DeleteFileReq
 	if err != nil {
 		e := fmt.Sprintf("failed to delete file: %v", err)
 		s.log.Info(e)
-		return nil, status.Errorf(getCode(err), "failed to delete file: "+err.Error())
+		return nil, status.Errorf(codes.Aborted, e)
 	}
 
 	return &pbservice.UploadStatus{Success: true, Message: "data was deleted"}, nil
@@ -390,21 +389,6 @@ func (s *GRPCServer) GetFile(req *pbservice.GetFileRequest, stream pbservice.Dat
 	}
 
 	return nil
-}
-
-// getCode returns gRCP error code based on error type
-func getCode(e error) codes.Code {
-	switch e {
-	case model.ErrUserAlreadyExists, model.ErrPdataAlreatyEsists:
-		return codes.AlreadyExists
-	case model.ErrUserAuth, model.ErrInvalidToken, model.ErrNoToken:
-		return codes.Unauthenticated
-	case model.ErrPdataNotFound:
-		return codes.NotFound
-	default:
-		return codes.Internal
-	}
-
 }
 
 func getPType(stype string) pbservice.DataType {

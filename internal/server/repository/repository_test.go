@@ -9,6 +9,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func NewMinioStorage() (*minio.Client, error) {
@@ -47,7 +48,8 @@ func TestFileRepo_GetFileList(t *testing.T) {
 	st, _ := NewMinioStorage()
 	repo := NewFileRepository(st, lg, &ctx)
 
-	repo.GetFileList(ctx, &user)
+	_, err := repo.GetFileList(ctx, &user)
+	assert.NoError(t, err)
 
 	// tests := []struct {
 	// 	name    string

@@ -13,6 +13,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+            sudo apt-get clean
+            sudo apt-get update
+            sudo apt-get install -y libgtk-3-dev pkg-config
 
       - name: Download statictest binary
         uses: robinraju/release-downloader@v1.10

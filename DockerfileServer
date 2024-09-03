@@ -1,5 +1,5 @@
 # Dockerfile for /cmd/dataserver/dataserver_linux_amd64
-FROM golang:1.22 as build
+FROM golang:1.22 AS builder
 
 ARG GITHUB_PATH=github
 # ARG DATABASE_URI
@@ -11,7 +11,8 @@ RUN echo "$DATAKEEPER_SERVER_ADDRESS"
 WORKDIR /app
 
 # Копируем go.mod и go.sum
-COPY go.mod go.sum ./
+COPY go.mod ./
+COPY go.sum ./
 COPY .env ./
 COPY internal ./internal
 COPY cmd ./cmd

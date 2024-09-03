@@ -1,4 +1,4 @@
-name: build binarys
+name: Build binarys
 
 on:
   pull_request:

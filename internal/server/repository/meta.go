@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	DataType_CARD    = "CARD"
-	DataType_LOGPASS = "LOGPASS"
+	DataTypeCARD    = "CARD"
+	DataTypeLOGPASS = "LOGPASS"
 )
 
 type DataRepository interface {
@@ -38,7 +38,6 @@ func (d *DataRepo) Save(ctx context.Context, data *model.Data) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	return data.ID, nil
 }
 

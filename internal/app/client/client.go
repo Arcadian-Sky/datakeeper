@@ -265,29 +265,28 @@ func (app *App) initPages() {
 	// Создаем список переходов
 	menu.SetBorder(true).SetTitle("Main menu:").SetTitleAlign(tview.AlignLeft)
 	menu.
-		AddItem("Главная", "Перейти на главную страницу", '1', func() {
+		AddItem("Main", "Go to main page", '1', func() {
 			app.pages.SwitchToPage("person")
 		}).
-		AddItem("Список данных", "Посмотреть сохраненные данные", '2', func() {
+		AddItem("Data list", "View saved data", '2', func() {
 			app.pages.SwitchToPage("datalist")
 		}).
-		AddItem("Загрузка файла", "Отправить файл", '3', func() {
+		AddItem("Save file", "Send file", '3', func() {
 			app.pages.SwitchToPage("fileform")
 		}).
-		AddItem("Загрузка авторизации", "Отправить данные пары логин пароль к домены", '4', func() {
+		AddItem("Save auth data", "Send data login and password for domain", '4', func() {
 			app.pages.SwitchToPage("loginpassform")
 		}).
-		AddItem("Загрузка карты", "Отправить номер кредитки", '5', func() {
+		AddItem("Save card data", "Send credit card number", '5', func() {
 			app.pages.SwitchToPage("cardform")
 		}).
-		AddItem("Настройки", "Настройки", 's', func() {
+		AddItem("Settings", "", 's', func() {
 			app.pages.SwitchToPage("settings")
 		}).
-		AddItem("Выход", "Закрыть приложение", 'q', func() {
+		AddItem("Quit", "Close application", 'q', func() {
 			app.tapp.Stop()
 		})
 
-	// Устанавливаем обработчик выбора элемента
 	menu.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
 		app.logView.Clear()
 		app.log.Info(" Вы выбрали: ", string(shortcut))
@@ -303,30 +302,28 @@ func (app *App) initPages() {
 	app.pages.AddPage("cardform", app.data.sendCardForm, true, false)
 	app.pages.AddPage("settings", app.settingsForm, true, false)
 
-	// Проверяем валидность токена
+	// Check if token is valid
 	if isTokenValid() {
-		// Если токен действителен, показываем главное меню
 		app.pages.SwitchToPage("main")
 	} else {
-		// Если токен недействителен, показываем страницу авторизации
 		app.pages.SwitchToPage("auth")
 	}
 
-	// Создаём TextView для логов
+	// Create TextView for logs
 	app.logView.
 		SetDynamicColors(true).
 		SetRegions(true).
 		SetScrollable(true)
 
-	// Перенаправляем вывод логов в TextView
+	// Retranslate logs to TextView
 	app.log.SetOutput(app.logView)
 	app.log.Info("Welcome to the application!")
 
-	// Flex для размещения логов и страниц
+	// Flex for logs and pages
 	flex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(app.pages, 0, 3, true).   // Страницы приложения будут ниже
-		AddItem(app.logView, 0, 1, false) // Логи будут в нижней части
+		AddItem(app.pages, 0, 3, true).
+		AddItem(app.logView, 0, 1, false)
 
 		// if err := app.tapp.SetRoot(app.pages, true).EnableMouse(true).Run(); err != nil {
 		// 	panic(err)
@@ -337,12 +334,12 @@ func (app *App) initPages() {
 	}
 }
 
-// Симуляция проверки токена авторизации
+// TODO: check auth prolongation
 func isTokenValid() bool {
 	return false
 }
 
-// Вызов клиента для получения данных из бд
+// Getting data of type data
 func (app *App) loadData() error {
 	data, err := app.client.GetDataList()
 	if err != nil {
@@ -353,6 +350,8 @@ func (app *App) loadData() error {
 	app.updateDatalistPage(data)
 	return nil
 }
+
+// Render list of type data
 func (app *App) updateDatalistPage(data []model.Data) {
 
 	list := tview.NewList()
@@ -377,7 +376,7 @@ func (app *App) updateDatalistPage(data []model.Data) {
 	app.pages.SwitchToPage("datalistmove")
 }
 
-// Вызов клиента для получения данных файлов
+// Getting data with type files
 func (app *App) loadFiles() error {
 	data, err := app.client.GetFileList()
 	if err != nil {
@@ -389,6 +388,7 @@ func (app *App) loadFiles() error {
 	return nil
 }
 
+// List of data with type files
 func (app *App) updateFileDatalistPage(data []model.FileItem) {
 
 	list := tview.NewList()
@@ -413,7 +413,7 @@ func (app *App) updateFileDatalistPage(data []model.FileItem) {
 	app.pages.SwitchToPage("datalistmove")
 }
 
-// createActionForm создает форму с действиями, используя переданный ID
+// Detail page of type file with actions
 func (app *App) createMoveForm(id string, name, desc string) {
 	// Создаем форму с действиями
 	actionForm := tview.NewForm()
@@ -450,6 +450,7 @@ func (app *App) createMoveForm(id string, name, desc string) {
 	app.pages.SwitchToPage("datalistmoveaction")
 }
 
+// Detail page of type data with actions
 func (app *App) createDetailForm(item model.Data) {
 	// Создаем форму с действиями
 	actionForm := tview.NewForm()

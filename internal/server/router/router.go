@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"time"
 
 	pbservice "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/service/v1"
 	pbuser "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/user/v1"
@@ -65,7 +66,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	// encPass := service.EncryptPass(in.Password)
 	user := model.User{Login: in.Login, Password: in.Password}
 
-	id, err := s.repouser.Register(ctx, user)
+	id, err := s.repouser.Register(ctx, &user)
 	if err != nil {
 		e := fmt.Sprintf("failed to register user (Register): %s", err.Error())
 		return nil, status.Errorf(getCode(err), e)
@@ -104,7 +105,7 @@ func (s *GRPCServer) Authenticate(ctx context.Context, in *pbuser.AuthenticateRe
 	if in.Login == `` || in.Password == `` {
 		return nil, status.Error(codes.InvalidArgument, "invalid argument")
 	}
-	user := model.User{
+	user := &model.User{
 		Login:    in.Login,
 		Password: in.Password,
 	}
@@ -211,6 +212,10 @@ func (s *GRPCServer) UploadFile(stream pbservice.DataKeeperService_UploadFileSer
 		return fmt.Errorf("failed to upload file to MinIO: %w", err)
 	}
 
+	//Update User
+	user.LastUpdate = time.Now()
+	s.repouser.SetLastUpdate(ctx, user)
+
 	// Send response to client
 	return stream.SendAndClose(&pbservice.UploadStatus{
 		Success: true,
@@ -246,7 +251,11 @@ func (s *GRPCServer) GetFileList(ctx context.Context, in *pbservice.ListFileRequ
 func (s *GRPCServer) SaveData(ctx context.Context, in *pbservice.SaveDataRequest) (*pbservice.UploadStatus, error) {
 
 	uID := jwtrule.GetUserIDFromCTX(ctx)
+	user := &model.User{
+		ID: uID,
+	}
 	s.log.Trace("uID: ", uID)
+
 	data := model.Data{
 		Type:     getType(in.Data.Type),
 		UserID:   uID,
@@ -263,6 +272,12 @@ func (s *GRPCServer) SaveData(ctx context.Context, in *pbservice.SaveDataRequest
 		s.log.Println(err)
 		return nil, status.Error(codes.Internal, "failed to get user files")
 	}
+
+	//Update User
+	user.LastUpdate = time.Now()
+	s.log.Println(user)
+
+	s.repouser.SetLastUpdate(ctx, user)
 
 	return &pbservice.UploadStatus{Success: true, Message: "empty"}, nil
 }

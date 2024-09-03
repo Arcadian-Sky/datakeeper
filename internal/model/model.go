@@ -57,12 +57,6 @@ type User struct {
 	LastUpdate time.Time `json:"last_update"`
 }
 
-// type Data struct {
-// 	UserID int64  `json:"id"`
-// 	Bucket string `json:"bucket"`
-// 	Data   string `json:"data"`
-// }
-
 type Data struct {
 	ID       int64
 	UserID   int64

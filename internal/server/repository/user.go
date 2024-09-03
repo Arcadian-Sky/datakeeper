@@ -12,8 +12,9 @@ import (
 )
 
 type UserRepository interface {
-	Register(ctx context.Context, user model.User) (int64, error)
-	Auth(ctx context.Context, user model.User) (model.User, error)
+	Register(ctx context.Context, user *model.User) (int64, error)
+	Auth(ctx context.Context, user *model.User) (*model.User, error)
+	SetLastUpdate(ctx context.Context, user *model.User) (*model.User, error)
 }
 
 type UserRepo struct {
@@ -30,7 +31,7 @@ func NewUserRepository(dbsql *sql.DB, logger *logrus.Logger) *UserRepo {
 	return p
 }
 
-func (r *UserRepo) Register(ctx context.Context, user model.User) (int64, error) {
+func (r *UserRepo) Register(ctx context.Context, user *model.User) (int64, error) {
 	var existingID int64
 	query := `SELECT id FROM "user" WHERE login = $1`
 	err := r.db.QueryRowContext(ctx, query, user.Login).Scan(&existingID)
@@ -59,22 +60,33 @@ func (r *UserRepo) Register(ctx context.Context, user model.User) (int64, error)
 	return userID, nil
 }
 
-func (r *UserRepo) Auth(ctx context.Context, user model.User) (model.User, error) {
+func (r *UserRepo) Auth(ctx context.Context, user *model.User) (*model.User, error) {
 	var storedUser model.User
 
 	query := `SELECT id, password FROM "user" WHERE login=$1`
 	err := r.db.QueryRowContext(ctx, query, user.Login).Scan(&storedUser.ID, &storedUser.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return storedUser, model.ErrInvalidLoginAndPass
+			return &storedUser, model.ErrInvalidLoginAndPass
 		}
-		return storedUser, err
+		return &storedUser, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(user.Password))
 	if err != nil {
-		return storedUser, model.ErrInvalidLoginAndPass
+		return &storedUser, model.ErrInvalidLoginAndPass
 	}
 
-	return storedUser, nil
+	return &storedUser, nil
+}
+
+func (r *UserRepo) SetLastUpdate(ctx context.Context, user *model.User) (*model.User, error) {
+	// Insert new user
+	insertQuery := `UPDATE "user" SET last_update = $1 WHERE id = $2`
+	_, err := r.db.ExecContext(ctx, insertQuery, user.LastUpdate, user.ID)
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }

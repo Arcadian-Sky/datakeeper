@@ -217,8 +217,10 @@ func (s *GRPCServer) UploadFile(stream pbservice.DataKeeperService_UploadFileSer
 
 	//Update User
 	user.LastUpdate = time.Now()
-	s.repouser.SetLastUpdate(ctx, user)
-
+	_, err = s.repouser.SetLastUpdate(ctx, user)
+	if err != nil {
+		return fmt.Errorf("failed to SetLastUpdate: %v", err)
+	}
 	// Send response to client
 	return stream.SendAndClose(&pbservice.UploadStatus{
 		Success: true,
@@ -280,7 +282,10 @@ func (s *GRPCServer) SaveData(ctx context.Context, in *pbservice.SaveDataRequest
 	user.LastUpdate = time.Now()
 	s.log.Println(user)
 
-	s.repouser.SetLastUpdate(ctx, user)
+	_, err = s.repouser.SetLastUpdate(ctx, user)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to SetLastUpdate: "+err.Error())
+	}
 
 	return &pbservice.UploadStatus{Success: true, Message: "empty"}, nil
 }

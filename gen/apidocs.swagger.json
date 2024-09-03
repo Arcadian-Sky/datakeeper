@@ -1,10 +1,13 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "proto/api/user/v1/user.proto",
+    "title": "empty.proto",
     "version": "version not set"
   },
   "tags": [
+    {
+      "name": "DataKeeperService"
+    },
     {
       "name": "UserService"
     }
@@ -62,6 +65,92 @@
       },
       "description": "Ответ на запрос аутентификации пользователя."
     },
+    "v1Data": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/v1DataType"
+        },
+        "login": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1DataType": {
+      "type": "string",
+      "enum": [
+        "DATA_TYPE_UNSPECIFIED",
+        "DATA_TYPE_TYPE_BINARY",
+        "DATA_TYPE_TYPE_LOGIN_PASSWORD",
+        "DATA_TYPE_TYPE_CREDIT_CARD"
+      ],
+      "default": "DATA_TYPE_UNSPECIFIED",
+      "description": "- DATA_TYPE_UNSPECIFIED: Произвольные текстовые данные\n - DATA_TYPE_TYPE_BINARY: Произвольные бинарные данные\n - DATA_TYPE_TYPE_LOGIN_PASSWORD: Пары логин/пароль\n - DATA_TYPE_TYPE_CREDIT_CARD: Данные банковских карт",
+      "title": "Enum для описания типов данных"
+    },
+    "v1FileChunk": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "title": "Содержимое файла"
+        },
+        "filename": {
+          "type": "string",
+          "title": "Имя файла (передается один раз в начале)"
+        }
+      },
+      "title": "Загрузка файла\nСообщение, представляющее собой часть файла"
+    },
+    "v1FileItem": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ListDataResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Data"
+          }
+        }
+      }
+    },
+    "v1ListFileResponse": {
+      "type": "object",
+      "properties": {
+        "fileitem": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1FileItem"
+          }
+        }
+      }
+    },
     "v1RegisterResponse": {
       "type": "object",
       "properties": {
@@ -78,6 +167,18 @@
         }
       },
       "description": "Ответ на запрос регистрации нового пользователя."
+    },
+    "v1UploadStatus": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "Статус ответа - загрузки/сохранения/удаления"
     }
   }
 }

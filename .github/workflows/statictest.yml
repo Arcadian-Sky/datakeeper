@@ -1,4 +1,4 @@
-name: go vet test
+name: Go vet test
 
 on:
   pull_request:

@@ -68,7 +68,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 
 	id, err := s.repouser.Register(ctx, &user)
 	if err != nil {
-		return nil, status.Errorf(getCode(err), fmt.Sprintf("failed to register user (Register): %s", err.Error()))
+		return nil, status.Errorf(getCode(err), "failed to register user (Register): "+err.Error())
 	}
 	str := fmt.Sprintf("user %s (userid: %d) was created\n", user.Login, id)
 	r += str
@@ -77,7 +77,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	user.ID = id
 	_, err = s.reposervice.CreateContainer(ctx, &user)
 	if err != nil {
-		return nil, status.Errorf(getCode(err), fmt.Sprintf("failed to register user (CreateContainer): %s", err.Error()))
+		return nil, status.Errorf(getCode(err), "failed to register user (CreateContainer): "+err.Error())
 	}
 	str = fmt.Sprintf("bucket container %s (userid: %d) was created\n", user.Bucket, id)
 	r += str
@@ -86,7 +86,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	// generate JWT
 	userJWT, err := jwtrule.Generate(user.ID, s.cfg.SecretKey)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, fmt.Sprintf("cant generate token: %s", err.Error()))
+		return nil, status.Errorf(codes.Internal, "cant generate token: "+err.Error())
 	}
 
 	bSuccess := false
@@ -119,7 +119,7 @@ func (s *GRPCServer) Authenticate(ctx context.Context, in *pbuser.AuthenticateRe
 	if err != nil {
 		e := fmt.Sprintf("cant generate token: %s", err.Error())
 		s.log.Info(e)
-		return nil, status.Errorf(codes.Internal, e)
+		return nil, status.Errorf(codes.Internal, "cant generate token: "+err.Error())
 	}
 
 	mess += "token generated"
@@ -287,8 +287,7 @@ func (s *GRPCServer) GetDataList(ctx context.Context, in *pbservice.ListDataRequ
 	}
 	data, err := s.repodata.GetList(ctx, user)
 	if err != nil {
-		e := fmt.Sprintf("failed to list pdata: %s", err.Error())
-		return nil, status.Errorf(getCode(err), e)
+		return nil, status.Errorf(getCode(err), "failed to list pdata: "+err.Error())
 	}
 
 	var pdataPointers []*pbservice.Data
@@ -318,7 +317,7 @@ func (s *GRPCServer) DeleteFile(ctx context.Context, in *pbservice.DeleteFileReq
 	if err != nil {
 		e := fmt.Sprintf("failed to delete file: %v", err)
 		s.log.Info(e)
-		return nil, status.Errorf(getCode(err), e)
+		return nil, status.Errorf(getCode(err), "failed to delete file: "+err.Error())
 	}
 
 	return &pbservice.UploadStatus{Success: true, Message: "data was deleted"}, nil

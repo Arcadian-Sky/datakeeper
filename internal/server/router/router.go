@@ -69,7 +69,8 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	id, err := s.repouser.Register(ctx, &user)
 	if err != nil {
 		e := fmt.Sprintf("failed to register user (Register): %s", err.Error())
-		return nil, status.Errorf(codes.Internal, e)
+		s.log.Info(e)
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	str := fmt.Sprintf("user %s (userid: %d) was created\n", user.Login, id)
 	r += str
@@ -78,7 +79,8 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	_, err = s.reposervice.CreateContainer(ctx, &user)
 	if err != nil {
 		e := fmt.Sprintf("failed to register user (CreateContainer): %s", err.Error())
-		return nil, status.Errorf(codes.Internal, e)
+		s.log.Info(e)
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	str = fmt.Sprintf("bucket container %s (userid: %d) was created\n", user.Bucket, id)
 	r += str
@@ -88,7 +90,8 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	userJWT, err := jwtrule.Generate(user.ID, s.cfg.SecretKey)
 	if err != nil {
 		e := fmt.Sprintf("cant generate token: %s", err.Error())
-		return nil, status.Errorf(codes.Unauthenticated, e)
+		s.log.Info(e)
+		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
 
 	bSuccess := false

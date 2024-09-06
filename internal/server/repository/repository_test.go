@@ -82,7 +82,8 @@ import (
 // }
 
 func TestFileRepo_CreateContainer(t *testing.T) {
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	type args struct {
 		ctx  *context.Context
@@ -206,7 +207,8 @@ func TestFileRepo_CreateContainer(t *testing.T) {
 }
 
 func TestFileRepo_GetFile(t *testing.T) {
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -354,7 +356,8 @@ func TestFileRepo_GetFile(t *testing.T) {
 }
 
 func TestFileRepo_DeleteFile(t *testing.T) {
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -434,7 +437,8 @@ func TestFileRepo_DeleteFile(t *testing.T) {
 }
 
 func TestFileRepo_GetFileList(t *testing.T) {
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -559,8 +563,8 @@ func TestFileRepo_GetFileList(t *testing.T) {
 }
 
 func TestFileRepo_UploadFile(t *testing.T) {
-
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

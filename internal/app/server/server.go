@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository"
-	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository/client"
 	minioclient "github.com/Arcadian-Sky/datakkeeper/internal/server/repository/client"
 	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/Arcadian-Sky/datakkeeper/migrations"
@@ -130,7 +129,7 @@ func NewСonnectToMongoDB(uri string, logg *logrus.Logger) (*mongo.Client, error
 }
 
 // Подключение к minio
-func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *logrus.Logger) (client.MinioClient, error) {
+func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *logrus.Logger) (minioclient.MinioClient, error) {
 
 	endpoint := settings.Endpoint
 	accessKeyID := settings.AccessKeyID

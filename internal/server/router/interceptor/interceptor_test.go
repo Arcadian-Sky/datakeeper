@@ -371,9 +371,15 @@ func NewServerTestStreamWithContext(ctx context.Context) *serverStreamWithContex
 }
 
 // TestContext проверяет, что метод Context возвращает правильный контекст.
+
+type contextKey string
+
+// Define context keys as constants of the custom type
+const keyTest contextKey = "keyTest"
+
 func TestContext(t *testing.T) {
 	// Создаем новый контекст
-	expectedCtx := context.WithValue(context.Background(), "key", "value")
+	expectedCtx := context.WithValue(context.Background(), keyTest, "value")
 
 	// Создаем экземпляр serverStreamWithContext с этим контекстом
 	stream := NewServerTestStreamWithContext(expectedCtx)
@@ -385,7 +391,7 @@ func TestContext(t *testing.T) {
 	assert.Equal(t, expectedCtx, actualCtx)
 
 	// Дополнительно проверяем значение контекста, если это необходимо
-	assert.Equal(t, "value", actualCtx.Value("key"))
+	assert.Equal(t, "value", actualCtx.Value(keyTest))
 }
 
 // func TestStreamInterceptor_AuthorizationFailure(t *testing.T) {

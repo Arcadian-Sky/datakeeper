@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/model"
-	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository/client"
+	"github.com/Arcadian-Sky/datakkeeper/tools/client"
 	"github.com/minio/minio-go/v7"
 	"github.com/sirupsen/logrus"
 )

@@ -32,7 +32,7 @@ func Parse() *InitedFlags {
 	flagPBDBSettings := flag.String("dp", "", "Адрес подключения к БД")
 	flagMBDBSettings := flag.String("dm", "", "Адрес подключения к БД")
 
-	flag.Parse()
+	// flag.Parse()
 	_ = godotenv.Load()
 
 	endpoint := *end

@@ -63,7 +63,7 @@ mockgen:
 	mockgen -source=./internal/server/repository/user.go -destination=./mocks/mock_user.go -package=mocks
 	mockgen -source=./internal/server/repository/repository.go -destination=./mocks/mock_repository.go -package=mocks
 	mockgen -source=./internal/server/repository/meta.go -destination=./mocks/mock_meta.go -package=mocks
-	mockgen -source=./internal/server/repository/client/minio_client.go -destination=./mocks/minio_client.go -package=mocks
+	mockgen -source=./tools/client/minio_client.go -destination=./mocks/minio_client.go -package=mocks
 	mockgen -source=./internal/app/client/client.go -destination=./mocks/mock_app_client.go -package=mocks
 	mockgen -source=./internal/client/client.go -destination=./mocks/mock_internal_client.go -package=mocks
 	# mockgen -source=./gen/proto/api/service/v1/service_grpc.pb.go -destination=./mocks/mock_dataservice.go -package=mocks

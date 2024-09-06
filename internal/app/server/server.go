@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository"
-	minioclient "github.com/Arcadian-Sky/datakkeeper/internal/server/repository/client"
 	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/Arcadian-Sky/datakkeeper/migrations"
+	minioclient "github.com/Arcadian-Sky/datakkeeper/tools/client"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"

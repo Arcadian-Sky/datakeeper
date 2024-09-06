@@ -185,6 +185,7 @@ func TestUserRepo_SetLastUpdate(t *testing.T) {
 		ctx  context.Context
 		user *model.User
 	}
+	tm := time.Now()
 	logg := logrus.New()
 	tests := []struct {
 		name    string
@@ -197,9 +198,9 @@ func TestUserRepo_SetLastUpdate(t *testing.T) {
 			name: "Successful Last Update",
 			args: args{
 				ctx:  context.Background(),
-				user: &model.User{ID: 1, LastUpdate: time.Now()},
+				user: &model.User{ID: 1, LastUpdate: tm},
 			},
-			want:    &model.User{ID: 1, LastUpdate: time.Now()},
+			want:    &model.User{ID: 1, LastUpdate: tm},
 			wantErr: false,
 			mock: func(mock sqlmock.Sqlmock) {
 				mock.ExpectExec(`UPDATE "user" SET last_update = \$1 WHERE id = \$2`).
@@ -211,7 +212,7 @@ func TestUserRepo_SetLastUpdate(t *testing.T) {
 			name: "Failed Last Update",
 			args: args{
 				ctx:  context.Background(),
-				user: &model.User{ID: 1, LastUpdate: time.Now()},
+				user: &model.User{ID: 1, LastUpdate: tm},
 			},
 			want:    &model.User{},
 			wantErr: true,

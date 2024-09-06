@@ -7,8 +7,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // TestRegister tests the Register method of GRPCClient
@@ -74,7 +74,7 @@ func TestGRPCClient_Register_Failure(t *testing.T) {
 			Login:    login,
 			Password: password,
 		}).
-		Return(nil, grpc.Errorf(codes.Unknown, errorMessage)).
+		Return(nil, status.Errorf(codes.Unknown, errorMessage)).
 		Times(1)
 
 	// Call the Register method
@@ -148,7 +148,7 @@ func TestGRPCClient_Authenticate_Failure(t *testing.T) {
 			Login:    login,
 			Password: password,
 		}).
-		Return(nil, grpc.Errorf(codes.Unauthenticated, errorMessage)).
+		Return(nil, status.Errorf(codes.Unauthenticated, errorMessage)).
 		Times(1)
 
 	// Call the Authenticate method

@@ -70,7 +70,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	if err != nil {
 		e := fmt.Sprintf("failed to register user (Register): %s", err.Error())
 		s.log.Info(e)
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, e)
 	}
 	str := fmt.Sprintf("user %s (userid: %d) was created\n", user.Login, id)
 	r += str
@@ -80,7 +80,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	if err != nil {
 		e := fmt.Sprintf("failed to register user (CreateContainer): %s", err.Error())
 		s.log.Info(e)
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, e)
 	}
 	str = fmt.Sprintf("bucket container %s (userid: %d) was created\n", user.Bucket, id)
 	r += str
@@ -91,7 +91,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	if err != nil {
 		e := fmt.Sprintf("cant generate token: %s", err.Error())
 		s.log.Info(e)
-		return nil, status.Errorf(codes.Unauthenticated, err.Error())
+		return nil, status.Error(codes.Unauthenticated, e)
 	}
 
 	bSuccess := false
@@ -124,7 +124,7 @@ func (s *GRPCServer) Authenticate(ctx context.Context, in *pbuser.AuthenticateRe
 	if err != nil {
 		e := fmt.Sprintf("cant generate token: %s", err.Error())
 		s.log.Info(e)
-		return nil, status.Errorf(codes.Internal, e)
+		return nil, status.Error(codes.Internal, e)
 	}
 
 	mess += "token generated"

@@ -7,7 +7,6 @@ import (
 	"syscall"
 
 	app "github.com/Arcadian-Sky/datakkeeper/internal/app/server"
-	"github.com/Arcadian-Sky/datakkeeper/internal/server/handler"
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository"
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/router"
 	"github.com/sirupsen/logrus"
@@ -58,7 +57,7 @@ func main() {
 	)
 
 	//set handlers
-	handler.NewHandler(ap)
+	// handler.NewHandler(ap)
 
 	// ap.Logger.WithField("Flags", *ap.Flags).Info("App init")
 

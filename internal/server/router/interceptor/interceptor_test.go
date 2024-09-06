@@ -362,3 +362,60 @@ func Test_postProcess(t *testing.T) {
 // type mockServerStream struct {
 // 	grpc.ServerStream
 // }
+
+// serverStreamWithContext - структура для тестирования
+
+// NewServerStreamWithContext - функция для создания экземпляра serverStreamWithContext
+func NewServerTestStreamWithContext(ctx context.Context) *serverStreamWithContext {
+	return &serverStreamWithContext{ctx: ctx}
+}
+
+// TestContext проверяет, что метод Context возвращает правильный контекст.
+func TestContext(t *testing.T) {
+	// Создаем новый контекст
+	expectedCtx := context.WithValue(context.Background(), "key", "value")
+
+	// Создаем экземпляр serverStreamWithContext с этим контекстом
+	stream := NewServerTestStreamWithContext(expectedCtx)
+
+	// Получаем контекст через метод Context
+	actualCtx := stream.Context()
+
+	// Проверяем, что возвращаемый контекст совпадает с ожидаемым
+	assert.Equal(t, expectedCtx, actualCtx)
+
+	// Дополнительно проверяем значение контекста, если это необходимо
+	assert.Equal(t, "value", actualCtx.Value("key"))
+}
+
+// func TestStreamInterceptor_AuthorizationFailure(t *testing.T) {
+// 	ctrl := gomock.NewController(t)
+// 	defer ctrl.Finish()
+
+// 	mockLogger := logrus.New()
+// 	mockLogger.SetLevel(logrus.TraceLevel)
+
+// 	// Интерцептор, который мы тестируем
+// 	interceptor := StreamInterceptor(mockLogger, "test-secret-key")
+
+// 	// Создаем mock серверный поток
+// 	mockServerStream := pbservice.NewMockDataKeeperServiceServer(ctrl)
+// 	mockServerStream.EXPECT().Context().Return(context.Background())
+
+// 	// Настроим mock для checkAuth, чтобы он возвращал ошибку
+// 	mockCheckAuth := func(ctx *context.Context, log *logrus.Logger, secretKey string, fullMethod string, headers interface{}) (*jwtrule.Token, error) {
+// 		return nil, status.Errorf(codes.Unauthenticated, "auth error")
+// 	}
+
+// 	// Выполним тест
+// 	err := interceptor(
+// 		nil,              // srv
+// 		mockServerStream, // ss
+// 		&grpc.StreamServerInfo{FullMethod: "/test/method"},               // info
+// 		func(srv interface{}, ss grpc.ServerStream) error { return nil }, // handler
+// 	)
+
+// 	// Проверяем результаты
+// 	assert.Error(t, err)
+// 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+// }

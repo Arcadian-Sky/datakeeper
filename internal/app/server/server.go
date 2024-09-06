@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository"
+	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository/client"
+	minioclient "github.com/Arcadian-Sky/datakkeeper/internal/server/repository/client"
 	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/Arcadian-Sky/datakkeeper/migrations"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -24,10 +26,11 @@ type Workers struct {
 	fileRepo repository.FileRepository
 }
 type App struct {
-	Logger  *logrus.Logger
-	DBPG    *sql.DB
-	DBMG    *mongo.Client
-	Storage *minio.Client
+	Logger *logrus.Logger
+	DBPG   *sql.DB
+	DBMG   *mongo.Client
+	// Storage *minio.Client
+	Storage minioclient.MinioClient
 	Flags   *settings.InitedFlags
 	Ctx     context.Context
 	CncF    context.CancelFunc
@@ -127,7 +130,7 @@ func NewСonnectToMongoDB(uri string, logg *logrus.Logger) (*mongo.Client, error
 }
 
 // Подключение к minio
-func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *logrus.Logger) (*minio.Client, error) {
+func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *logrus.Logger) (client.MinioClient, error) {
 
 	endpoint := settings.Endpoint
 	accessKeyID := settings.AccessKeyID
@@ -151,7 +154,7 @@ func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *lo
 	}
 
 	logg.Log(logrus.InfoLevel, "Successfully connected to MinIO")
-	return client, nil
+	return minioclient.NewMinioClient(client), nil
 }
 
 func (app *App) SetDataRepo(dR repository.DataRepository) {
@@ -182,14 +185,6 @@ func (app *App) MigrateDBPG() error {
 
 	return nil
 }
-
-// Репозиторий по работе с метаданными документов
-// func (app *App) SetDBMGRepo(dR repository.DataRepository) {
-// 	app.Workers.dataRepo = dR
-// }
-// func (app *App) GetDataRepo() *repository.DataRepository {
-// 	return &app.Workers.dataRepo
-// }
 
 // Репозиторий по работе с документами
 func (app *App) SetDBFileRepo(fR repository.FileRepository) {

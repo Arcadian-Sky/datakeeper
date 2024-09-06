@@ -73,8 +73,7 @@ func (s *GRPCServer) Register(ctx context.Context, in *pbuser.RegisterRequest) (
 	}
 	str := fmt.Sprintf("user %s (userid: %d) was created\n", user.Login, id)
 	r += str
-	s.log.Info(s)
-
+	s.log.Info(str)
 	user.ID = id
 	_, err = s.reposervice.CreateContainer(ctx, &user)
 	if err != nil {

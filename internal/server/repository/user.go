@@ -76,7 +76,7 @@ func (r *UserRepo) Auth(ctx context.Context, user *model.User) (*model.User, err
 	if err != nil {
 		return &storedUser, model.ErrInvalidLoginAndPass
 	}
-
+	storedUser.Login = user.Login
 	return &storedUser, nil
 }
 

@@ -28,6 +28,9 @@ plugins:
     opt: 
       - allow_repeated_fields_in_body=true
       - allow_merge=true
+  - local: protoc-gen-go-grpc-mock
+    out: ./gen
+    opt: paths=source_relative
 
   # grpc-ecosystem/gateway version 2.21.0
   # - local: protoc-gen-grpc-gateway

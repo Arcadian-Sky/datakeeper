@@ -35,7 +35,7 @@ type App struct {
 	pages        *tview.Pages
 	settingsForm *tview.Form
 	logView      *tview.TextView
-	client       client.GRPCClient
+	client       client.GRPCClientInterface
 	Conn         *grpc.ClientConn
 	storage      *client.MemStorage
 	log          *logrus.Logger
@@ -77,7 +77,10 @@ func NewClientApp(st *settings.ClientConfig) *App {
 	app.initDataInterfaces()
 	app.iniSettings()
 	app.initPages()
-
+	// Запуск
+	if err := app.tapp.Run(); err != nil {
+		panic(err)
+	}
 	return app
 }
 
@@ -325,13 +328,9 @@ func (app *App) initPages() {
 		AddItem(app.pages, 0, 3, true).
 		AddItem(app.logView, 0, 1, false)
 
-		// if err := app.tapp.SetRoot(app.pages, true).EnableMouse(true).Run(); err != nil {
-		// 	panic(err)
-		// }
-	// Устанавливаем Flex как корневой элемент
-	if err := app.tapp.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
-		panic(err)
-	}
+	app.tapp.
+		SetRoot(flex, true).
+		EnableMouse(true)
 }
 
 // TODO: check auth prolongation

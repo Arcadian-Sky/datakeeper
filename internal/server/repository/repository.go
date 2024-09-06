@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/model"
+	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository/client"
 	"github.com/minio/minio-go/v7"
 	"github.com/sirupsen/logrus"
 )
@@ -19,19 +19,20 @@ type FileRepository interface {
 	GetFileList(ctx context.Context, user *model.User) ([]model.FileItem, error)
 	DeleteFile(ctx context.Context, fileID string, user *model.User) error
 	UploadFile(ctx context.Context, user *model.User, objectName string, file *os.File) error
-
-	Save(ctx context.Context, user model.User, data model.Data) (int64, error)
 	CreateContainer(ctx context.Context, user *model.User) (model.User, error)
+
+	// Save(ctx context.Context, user model.User, data model.Data) (int64, error)
 }
 
 type FileRepo struct {
-	db       *minio.Client
+	db client.MinioClient
+	// db       *minio.Client
 	log      *logrus.Logger
 	ctx      *context.Context
 	location string
 }
 
-func NewFileRepository(st *minio.Client, lg *logrus.Logger, ct *context.Context) *FileRepo {
+func NewFileRepository(st client.MinioClient, lg *logrus.Logger, ct *context.Context) *FileRepo {
 	p := &FileRepo{
 		db:       st,
 		log:      lg,
@@ -177,34 +178,34 @@ func (f *FileRepo) UploadFile(ctx context.Context, user *model.User, objectName 
 	return nil
 }
 
-func (f *FileRepo) Save(ctx context.Context, user model.User, data model.Data) (int64, error) {
+// func (f *FileRepo) Save(ctx context.Context, user model.User, data model.Data) (int64, error) {
 
-	// Проверка существования бакета, создание, если он не существует
-	exists, err := f.db.BucketExists(context.Background(), user.Bucket)
-	if err != nil {
-		f.log.Log(logrus.InfoLevel, "failed to check bucket existence: ", err)
-		return 0, fmt.Errorf("failed to check bucket existence: %w", err)
-	}
+// 	// Проверка существования бакета, создание, если он не существует
+// 	exists, err := f.db.BucketExists(context.Background(), user.Bucket)
+// 	if err != nil {
+// 		f.log.Log(logrus.InfoLevel, "failed to check bucket existence: ", err)
+// 		return 0, fmt.Errorf("failed to check bucket existence: %w", err)
+// 	}
 
-	if !exists {
-		err = f.db.MakeBucket(context.Background(), user.Bucket, minio.MakeBucketOptions{})
-		if err != nil {
-			return 0, fmt.Errorf("failed to create bucket: %w", err)
-		}
-	}
+// 	if !exists {
+// 		err = f.db.MakeBucket(context.Background(), user.Bucket, minio.MakeBucketOptions{})
+// 		if err != nil {
+// 			return 0, fmt.Errorf("failed to create bucket: %w", err)
+// 		}
+// 	}
 
-	// Преобразуем строку данных в байтовый поток
-	dataReader := strings.NewReader(data.Card)
+// 	// Преобразуем строку данных в байтовый поток
+// 	dataReader := strings.NewReader(data.Card)
 
-	// Загрузка данных в бакет
-	_, err = f.db.PutObject(context.Background(), user.Bucket, data.Title, dataReader, int64(dataReader.Len()), minio.PutObjectOptions{
-		ContentType: "application/octet-stream",
-	})
-	if err != nil {
-		return 0, fmt.Errorf("failed to save data to MinIO: %w", err)
-	}
+// 	// Загрузка данных в бакет
+// 	_, err = f.db.PutObject(context.Background(), user.Bucket, data.Title, dataReader, int64(dataReader.Len()), minio.PutObjectOptions{
+// 		ContentType: "application/octet-stream",
+// 	})
+// 	if err != nil {
+// 		return 0, fmt.Errorf("failed to save data to MinIO: %w", err)
+// 	}
 
-	f.log.Printf("Successfully saved %s to bucket %s\n", data.Title, user.Bucket)
+// 	f.log.Printf("Successfully saved %s to bucket %s\n", data.Title, user.Bucket)
 
-	return 1, nil
-}
+// 	return 1, nil
+// }

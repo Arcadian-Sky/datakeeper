@@ -37,6 +37,39 @@ fmt:			## Format code
 # 		-tags='no_mysql no_sqlite3' \
 # 		-o ./bin/connect$(shell go env GOEXE) cmd/connect/main.go
 
+.PHONY: lint
+lint:
+	go vet ./...
+	staticcheck ./...
+	errcheck ./...
+	golint ./...
+
+.PHONY: test
+test:
+	go test ./... -p 1
+
+.PHONY: testcov
+testcov:
+	# go test -v -coverpkg=./internal/... -coverprofile=profile.cov ./internal/...
+	go test ./internal/... -coverpkg=./internal/... -coverprofile=coverage.out -covermode=atomic
+	go tool cover -func coverage.out
+
+.PHONY: bufgen
+bufgen:
+	buf generate
+	
+.PHONY: mockgen
+mockgen:
+	mockgen -source=./internal/server/repository/user.go -destination=./mocks/mock_user.go -package=mocks
+	mockgen -source=./internal/server/repository/repository.go -destination=./mocks/mock_repository.go -package=mocks
+	mockgen -source=./internal/server/repository/meta.go -destination=./mocks/mock_meta.go -package=mocks
+	mockgen -source=./internal/server/repository/client/minio_client.go -destination=./mocks/minio_client.go -package=mocks
+	mockgen -source=./internal/app/client/client.go -destination=./mocks/mock_app_client.go -package=mocks
+	mockgen -source=./internal/client/client.go -destination=./mocks/mock_internal_client.go -package=mocks
+	# mockgen -source=./gen/proto/api/service/v1/service_grpc.pb.go -destination=./mocks/mock_dataservice.go -package=mocks
+	# mockgen -source=./gen/proto/api/user/v1/user_grpc.pb.go -destination=./mocks/mock_userservice.go -package=mocks
+
+
 .PHONY: clean
 clean:			## Remove generated artifacts
 	@rm -rf ./bin
@@ -94,11 +127,6 @@ goose-down:		## Roll back the version by 1
 	pip install "psycopg[binary,pool]"
 	go install github.com/pressly/goose/v3/cmd/goose@latest
 
-lint:
-	go vet ./...
-	staticcheck ./...
-	errcheck ./...
-	golint ./...
 
-test:
-	go test ./... -p 1
+
+

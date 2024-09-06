@@ -8,3 +8,4 @@ coverage:
   - 'gen/**'
   - "**/*.pb.go"
   - "**/*.pb.validate.go"
+  - "/internal/server/repository/client/*"

@@ -5,12 +5,28 @@ import (
 
 	pbsrv "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/service/v1"
 	pb "github.com/Arcadian-Sky/datakkeeper/gen/proto/api/user/v1"
+	"github.com/Arcadian-Sky/datakkeeper/internal/model"
 	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
+
+type GRPCClientInterface interface {
+	Register(login, password string) error
+	Authenticate(login, password string) error
+
+	GetDataList() ([]model.Data, error)
+	SaveLoginPass(domain, login, pass string) error
+	SaveCard(title, card string) error
+	Delete(id int64) error
+
+	GetFileList() ([]model.FileItem, error)
+	DeleteFile(fileName string) error
+	UploadFile(filePath string) error
+	GetFile(fileName string) error
+}
 
 type GRPCClient struct {
 	log     *logrus.Logger
@@ -20,7 +36,7 @@ type GRPCClient struct {
 }
 
 // NewGclient initializes new Gclient
-func NewGclient(clientConfig settings.ClientConfig, mstorage *MemStorage, lg *logrus.Logger) (GRPCClient, *grpc.ClientConn) {
+func NewGclient(clientConfig settings.ClientConfig, mstorage *MemStorage, lg *logrus.Logger) (GRPCClientInterface, *grpc.ClientConn) {
 	var conn *grpc.ClientConn
 	var err error
 
@@ -34,7 +50,7 @@ func NewGclient(clientConfig settings.ClientConfig, mstorage *MemStorage, lg *lo
 		lg.Debug("failed to connect to server: ", err)
 	}
 
-	return GRPCClient{
+	return &GRPCClient{
 		Storage: mstorage,
 		log:     lg,
 		User:    pb.NewUserServiceClient(conn),

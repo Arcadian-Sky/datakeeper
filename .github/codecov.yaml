@@ -5,7 +5,7 @@ coverage:
   status:
     patch: no
   ignore:
-  - 'gen/**'
+  - "gen/**"
   - "**/*.pb.go"
   - "**/*.pb.validate.go"
   - "/internal/server/repository/client/*"

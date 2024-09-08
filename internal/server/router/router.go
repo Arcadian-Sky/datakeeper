@@ -329,7 +329,7 @@ func (s *GRPCServer) DeleteFile(ctx context.Context, in *pbservice.DeleteFileReq
 	if err != nil {
 		e := fmt.Sprintf("failed to delete file: %v", err)
 		s.log.Info(e)
-		return nil, status.Errorf(codes.Aborted, e)
+		return nil, status.Error(codes.Aborted, e)
 	}
 
 	return &pbservice.UploadStatus{Success: true, Message: "data was deleted"}, nil

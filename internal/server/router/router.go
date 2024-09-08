@@ -35,7 +35,7 @@ type GRPCServer struct {
 }
 
 // InitGRPCServer initializes a new gRPC server.
-func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.FileRepository, ru *repository.UserRepository, rd *repository.DataRepository) (*GRPCServer, error) {
+func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs repository.FileRepository, ru repository.UserRepository, rd repository.DataRepository) (*GRPCServer, error) {
 	// creates a gRPC server
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptor.UnaryInterceptor(lg, cf.SecretKey)),
@@ -45,9 +45,9 @@ func InitGRPCServer(cf *settings.InitedFlags, lg *logrus.Logger, rs *repository.
 	ob := &GRPCServer{
 		cfg:         cf,
 		log:         lg,
-		repodata:    *rd,
-		reposervice: *rs,
-		repouser:    *ru,
+		repodata:    rd,
+		reposervice: rs,
+		repouser:    ru,
 		serv:        s,
 	}
 	// register the service

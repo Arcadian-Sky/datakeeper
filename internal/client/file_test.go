@@ -301,37 +301,6 @@ func TestGetFile_Success(t *testing.T) {
 	assert.Equal(t, "chunk1chunk2", string(content))
 }
 
-// func TestGetFile_OpenFileError(t *testing.T) {
-// 	ctrl := gomock.NewController(t)
-// 	defer ctrl.Finish()
-
-// 	// Create mock objects
-// 	mockDataClient := pbservice.NewMockDataKeeperServiceClient(ctrl)
-// 	mockStream := pbservice.NewMockDataKeeperService_GetFileClient(ctrl)
-// 	mockLogger := logrus.New()
-
-// 	mockDataClient.EXPECT().
-// 		GetFile(gomock.Any(), gomock.Any()).
-// 		Return(mockStream, nil).
-// 		Times(1)
-
-// 	mockStream.EXPECT().
-// 		Recv().
-// 		Return(&pbservice.FileChunk{Data: []byte("chunk")}, nil).
-// 		Times(1)
-
-// 	client := &GRPCClient{
-// 		log:     mockLogger,
-// 		Data:    mockDataClient,
-// 		Storage: &MemStorage{PfilesDir: "/invalid/path"}, // Invalid directory
-// 	}
-
-// 	err := client.GetFile("testfile.txt")
-
-// 	// Assertions
-// 	assert.Error(t, err)
-// }
-
 func TestGetFile_RecvError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

@@ -1,9 +1,11 @@
 package router
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 
@@ -18,7 +20,34 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	gomockuber "go.uber.org/mock/gomock"
 )
+
+func TestInitGRPCServer(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepoUser := mocks.NewMockUserRepository(ctrl)
+	mockRepoFile := mocks.NewMockFileRepository(ctrl)
+	mockRepoData := mocks.NewMockDataRepository(ctrl)
+
+	// Define test settings
+	testCfg := &settings.InitedFlags{
+		SecretKey: "test-secret",
+	}
+	testLogger := logrus.New()
+
+	// Call the function
+	server, err := InitGRPCServer(testCfg, testLogger, mockRepoFile, mockRepoUser, mockRepoData)
+
+	// Assertions
+	assert.NoError(t, err, "Expected no error when initializing the GRPC server")
+	assert.NotNil(t, server, "Expected server to be initialized")
+	assert.IsType(t, &GRPCServer{}, server, "Expected server to be of type GRPCServer")
+
+	// Check the gRPC server is initialized with interceptors
+	assert.NotNil(t, server.serv, "Expected gRPC server to be initialized")
+}
 
 func createTestMockServer(t *testing.T) (server *GRPCServer) {
 	ctrl := gomock.NewController(t)
@@ -655,6 +684,76 @@ func TestGetType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := getType(tt.input)
 			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
+func TestGRPCServer_GetFile(t *testing.T) {
+	server := createTestMockServer(t)
+
+	ctx := context.Background()
+	ctx = jwtrule.SetUserIDToCTX(ctx, 1) // Assuming you have a way to set user ID in context
+
+	// Create a temporary file
+	tmpFile, err := os.CreateTemp("", "testfile")
+	if err != nil {
+		t.Fatalf("Failed to create temporary file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name()) // Clean up after test
+	tmpFile.WriteString("file content")
+	defer tmpFile.Close() // Close the file to ensure it's ready for reading
+
+	tests := []struct {
+		name      string
+		input     *pbservice.GetFileRequest
+		mockSetup func()
+		wantErr   bool
+	}{
+		{
+			name:  "Success",
+			input: &pbservice.GetFileRequest{Name: "file1"},
+			mockSetup: func() {
+				mockFile := new(bytes.Buffer) // Simulating a file
+				mockFile.WriteString("file content")
+
+				mockRepoFile := server.reposervice.(*mocks.MockFileRepository)
+				mockRepoFile.EXPECT().
+					GetFile(gomock.Any(), "file1", gomock.Any()). // Adjusted for any user
+					Return(tmpFile, nil).
+					Times(1)
+			},
+			wantErr: false,
+		},
+		{
+			name:  "File Not Found",
+			input: &pbservice.GetFileRequest{Name: "file1"},
+			mockSetup: func() {
+				mockRepoFile := server.reposervice.(*mocks.MockFileRepository)
+				mockRepoFile.EXPECT().
+					GetFile(gomock.Any(), "file1", &model.User{ID: 1}).
+					Return(nil, fmt.Errorf("file not found")).
+					Times(1)
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockSetup()
+
+			ctrlub := gomockuber.NewController(t)
+			defer ctrlub.Finish()
+
+			stream := pbservice.NewMockDataKeeperService_GetFileServer(ctrlub)
+			stream.EXPECT().
+				Context().
+				Return(ctx).
+				Times(2)
+
+			err := server.GetFile(tt.input, stream)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetFile() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

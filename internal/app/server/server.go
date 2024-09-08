@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository"
@@ -15,7 +14,6 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/pressly/goose/v3"
 	"github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Workers struct {
@@ -26,7 +24,7 @@ type Workers struct {
 type App struct {
 	Logger *logrus.Logger
 	DBPG   *sql.DB
-	DBMG   *mongo.Client
+	// DBMG   *mongo.Client
 	// Storage *minio.Client
 	Storage minioclient.MinioClient
 	Flags   *settings.InitedFlags
@@ -41,29 +39,6 @@ func NewApp(ctx *context.Context, ctcf *context.CancelFunc) (*App, error) {
 		Ctx:     *ctx,
 		CncF:    *ctcf,
 	}
-	logg := NewLogger()
-	app.Logger = logg
-
-	parsed := settings.Parse()
-	app.Logger.Debug("parsed: ", parsed, "\n")
-
-	//set db pg connect
-	app.Logger.Debug("parsed.PGDBSettings: ", parsed.DBPGSettings, "\n")
-	dbP, err := NewConnectionToPostgresDB(parsed.DBPGSettings, logg)
-	if err != nil {
-		return &app, errors.New("failed to connect to db: " + err.Error())
-	}
-
-	app.Logger.Debug("parsed.MinIOSettings: ", parsed.Storage, "\n")
-	client, err := NewСonnectToMinIO(app.Ctx, parsed.Storage, logg)
-	if err != nil {
-		return &app, errors.New("failed to connect to starage: " + err.Error())
-	}
-
-	app.DBPG = dbP
-	app.Storage = client
-	app.Flags = parsed
-
 	return &app, nil
 }
 
@@ -75,6 +50,23 @@ func NewLogger() *logrus.Logger {
 		FullTimestamp: false, // Включить полный временной штамп
 	})
 	return logg
+}
+
+func (ap *App) SetLogger(logg *logrus.Logger) {
+	ap.Logger = logg
+}
+
+func (ap *App) SetDBPG(db *sql.DB) {
+	ap.DBPG = db
+}
+
+func (ap *App) SetStorage(db minioclient.MinioClient) {
+	ap.Storage = db
+}
+
+func (ap *App) SetFlags(st *settings.InitedFlags) {
+	ap.Logger.Debug("parsed: ", st, "\n")
+	ap.Flags = st
 }
 
 // Подключение к постгрес
@@ -93,30 +85,6 @@ func NewConnectionToPostgresDB(dsn string, logg *logrus.Logger) (*sql.DB, error)
 	logg.Log(logrus.InfoLevel, "Successfully connected to PostgresDB")
 	return db, err
 }
-
-// Подключение к mongo
-// func NewСonnectToMongoDB(uri string, logg *logrus.Logger) (*mongo.Client, error) {
-// 	// Создаем контекст с таймаутом
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	// Настройка параметров подключения
-// 	clientOptions := options.Client().ApplyURI(uri)
-
-// 	// Подключение к MongoDB
-// 	client, err := mongo.Connect(ctx, clientOptions)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Проверка соединения
-// 	if err := client.Ping(ctx, readpref.Primary()); err != nil {
-// 		return nil, err
-// 	}
-
-// 	logg.Log(logrus.InfoLevel, "Successfully connected to MongoDB")
-// 	return client, nil
-// }
 
 // Подключение к minio
 func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *logrus.Logger) (minioclient.MinioClient, error) {
@@ -150,16 +118,16 @@ func (app *App) SetDataRepo(dR repository.DataRepository) {
 	app.Workers.dataRepo = dR
 }
 
-func (app *App) GetDataRepo() *repository.DataRepository {
-	return &app.Workers.dataRepo
+func (app *App) GetDataRepo() repository.DataRepository {
+	return app.Workers.dataRepo
 }
 
 // Репозиторий по работе с пользователем
 func (app *App) SetUserRepo(uR repository.UserRepository) {
 	app.Workers.userRepo = uR
 }
-func (app *App) GetUserRepo() *repository.UserRepository {
-	return &app.Workers.userRepo
+func (app *App) GetUserRepo() repository.UserRepository {
+	return app.Workers.userRepo
 }
 
 func (app *App) MigrateDBPG() error {
@@ -179,6 +147,6 @@ func (app *App) MigrateDBPG() error {
 func (app *App) SetDBFileRepo(fR repository.FileRepository) {
 	app.Workers.fileRepo = fR
 }
-func (app *App) GetFileRepo() *repository.FileRepository {
-	return &app.Workers.fileRepo
+func (app *App) GetFileRepo() repository.FileRepository {
+	return app.Workers.fileRepo
 }

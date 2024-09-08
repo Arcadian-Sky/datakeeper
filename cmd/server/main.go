@@ -9,6 +9,7 @@ import (
 	app "github.com/Arcadian-Sky/datakkeeper/internal/app/server"
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository"
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/router"
+	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,6 +23,29 @@ func main() {
 	if err != nil {
 		ap.Logger.Fatal(err)
 	}
+
+	logg := app.NewLogger()
+	ap.SetLogger(logg)
+
+	parsed := settings.Parse()
+	ap.SetFlags(parsed)
+
+	//set db pg connect
+	// ap.Logger.Debug("parsed.PGDBSettings: ", parsed.DBPGSettings, "\n")
+	dbP, err := app.NewConnectionToPostgresDB(parsed.DBPGSettings, logg)
+	if err != nil {
+		ap.Logger.Fatal("failed to connect to db: " + err.Error())
+	}
+	ap.SetDBPG(dbP)
+
+	//set db filestore connect
+	// ap.Logger.Debug("parsed.MinIOSettings: ", parsed.Storage, "\n")
+	client, err := app.NewСonnectToMinIO(ap.Ctx, parsed.Storage, logg)
+	if err != nil {
+		ap.Logger.Fatal("failed to connect to starage: " + err.Error())
+	}
+	ap.SetStorage(client)
+
 	defer ap.DBPG.Close()
 
 	go handleSignals(ap.CncF, ap.Logger)
@@ -38,16 +62,10 @@ func main() {
 	if err != nil {
 		ap.Logger.Fatal(err)
 	}
-	// mgrepo := repository.NewDataRepository(ap.DBMG, ap.Logger)
-	// ap.SetDBMGRepo(mgrepo)
 
 	frepo := repository.NewFileRepository(ap.Storage, ap.Logger, &ap.Ctx)
 	ap.SetDBFileRepo(frepo)
 
-	// lis, err := net.Listen("tcp", ":50051")
-	// if err != nil {
-	// 	log.Fatalf("failed to listen: %v", err)
-	// }
 	server, err := router.InitGRPCServer(
 		ap.Flags,
 		ap.Logger,
@@ -55,16 +73,6 @@ func main() {
 		ap.GetUserRepo(),
 		ap.GetDataRepo(),
 	)
-
-	//set handlers
-	// handler.NewHandler(ap)
-
-	// ap.Logger.WithField("Flags", *ap.Flags).Info("App init")
-
-	// go func() {
-	// 	ap.Logger.Info("Start ListenAndServe")
-	// 	ap.Logger.Fatal(http.ListenAndServe(ap.Flags.Endpoint, router.InitRouter(*vhandler)))
-	// }()
 
 	go func() {
 		ap.Logger.Info("Start ListenAndServe")

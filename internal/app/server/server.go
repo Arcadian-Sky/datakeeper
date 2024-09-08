@@ -135,7 +135,7 @@ func (ap *App) MigrateDBPG() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	err := goose.RunContext(ctx, "up", app.DBPG, ".")
+	err := goose.RunContext(ctx, "up", ap.DBPG, ".")
 	if err != nil {
 		return err
 	}

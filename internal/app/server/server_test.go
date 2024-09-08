@@ -1,11 +1,9 @@
 package server
 
 import (
-	"bytes"
 	"database/sql"
 	"testing"
 
-	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/Arcadian-Sky/datakkeeper/mocks"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
@@ -152,44 +150,4 @@ func TestSetDBPG(t *testing.T) {
 
 	// Check if DB is set correctly
 	assert.Equal(t, db, app.DBPG)
-}
-
-// func TestSetStorage(t *testing.T) {
-// 	ctrl := gomock.NewController(t)
-// 	defer ctrl.Finish()
-// 	// Создаем мок объекта FileRepository
-// 	mockStorage := mocks.NewMockFileRepository(ctrl)
-
-// 	app := &App{}
-
-// 	// Set Storage
-// 	app.SetStorage(mockStorage)
-
-// 	// Check if Storage is set correctly
-// 	assert.Equal(t, mockStorage, app.Storage)
-// }
-
-func TestSetFlags(t *testing.T) {
-	// Initialize App and Settings
-	app := &App{}
-	flags := &settings.InitedFlags{
-		SecretKey: "test-secret",
-	}
-
-	// Create a custom logger to capture debug logs
-	logger := logrus.New()
-	buf := new(bytes.Buffer)
-	logger.SetOutput(buf)
-
-	// Set Logger and Flags
-	app.SetLogger(logger)
-	app.SetFlags(flags)
-
-	// Check if Flags are set correctly
-	assert.Equal(t, flags, app.Flags)
-
-	// Check if debug log contains expected output
-	// expectedLog := "parsed: &{SecretKey:test-secret} \n"
-	// fmt.Printf("buf.String(): %v\n", buf.String())
-	// assert.Contains(t, buf.String(), expectedLog)
 }

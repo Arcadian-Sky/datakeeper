@@ -700,7 +700,10 @@ func TestGRPCServer_GetFile(t *testing.T) {
 		t.Fatalf("Failed to create temporary file: %v", err)
 	}
 	defer os.Remove(tmpFile.Name()) // Clean up after test
-	tmpFile.WriteString("file content")
+	_, err = tmpFile.WriteString("file content")
+	if err != nil {
+		t.Fatalf("Failed to write temporary file content: %v", err)
+	}
 	defer tmpFile.Close() // Close the file to ensure it's ready for reading
 
 	tests := []struct {

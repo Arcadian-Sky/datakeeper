@@ -11,7 +11,6 @@ import (
 	"github.com/rivo/tview"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 )
 
 func TestInitDataInterfaces(t *testing.T) {
@@ -303,12 +302,12 @@ func TestAppInitialization(t *testing.T) {
 
 	// Создаем экземпляр приложения
 	app := &App{
-		tapp:   tview.NewApplication(),
+		// tapp:   tview.NewApplication(),
 		person: Person{},
 		data:   Data{},
 		pages:  tview.NewPages(),
-		Conn:   &grpc.ClientConn{}, // Можно мокировать при необходимости
-		log:    logrus.New(),
+		// Conn:   &grpc.ClientConn{}, // Можно мокировать при необходимости
+		// log:    logrus.New(),
 	}
 
 	// Инициализация форм

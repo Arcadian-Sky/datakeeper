@@ -74,7 +74,7 @@ func TestGRPCClient_Register_Failure(t *testing.T) {
 			Login:    login,
 			Password: password,
 		}).
-		Return(nil, status.Errorf(codes.Unknown, errorMessage)).
+		Return(nil, status.Error(codes.Unknown, errorMessage)).
 		Times(1)
 
 	// Call the Register method
@@ -148,7 +148,7 @@ func TestGRPCClient_Authenticate_Failure(t *testing.T) {
 			Login:    login,
 			Password: password,
 		}).
-		Return(nil, status.Errorf(codes.Unauthenticated, errorMessage)).
+		Return(nil, status.Error(codes.Unauthenticated, errorMessage)).
 		Times(1)
 
 	// Call the Authenticate method

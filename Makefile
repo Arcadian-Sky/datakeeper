@@ -51,8 +51,7 @@ test:
 .PHONY: testcov
 testcov:
 	# go test -v -coverpkg=./internal/... -coverprofile=profile.cov ./internal/...
-	go test ./internal/... -coverpkg=./internal/client/... -coverpkg=./internal/server/... -coverpkg=./internal/model/... -coverpkg=./internal/settings/... -coverprofile=coverage.out -covermode=atomic
-	# go test ./internal/... -coverpkg=./internal/... -coverprofile=coverage.out -covermode=atomic
+	go test ./internal/... -coverpkg=./internal/... -coverprofile=coverage.out -covermode=atomic
 	go tool cover -func coverage.out
 
 .PHONY: bufgen

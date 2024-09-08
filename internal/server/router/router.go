@@ -144,21 +144,21 @@ func (s *GRPCServer) Authenticate(ctx context.Context, in *pbuser.AuthenticateRe
 }
 
 // Start launch the server.
-func (g *GRPCServer) Start() error {
-	g.log.Info("g.cfg.Endpoint: ", g.cfg.Endpoint, "")
+func (s *GRPCServer) Start() error {
+	s.log.Info("s.cfg.Endpoint: ", s.cfg.Endpoint, "")
 	// determines the server port
-	listen, err := net.Listen("tcp", g.cfg.Endpoint)
+	listen, err := net.Listen("tcp", s.cfg.Endpoint)
 	if err != nil {
 		return err
 	}
-	g.log.Info("Сервер gRPC начал работу")
+	s.log.Info("Сервер gRPC начал работу")
 	// listen for gRPC requests
-	return g.serv.Serve(listen)
+	return s.serv.Serve(listen)
 }
 
 // ShutDown graceful stops the server.
-func (g *GRPCServer) ShutDown() error {
-	g.serv.GracefulStop()
+func (s *GRPCServer) ShutDown() error {
+	s.serv.GracefulStop()
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (s *GRPCServer) GetDataList(ctx context.Context, in *pbservice.ListDataRequ
 	data, err := s.repodata.GetList(ctx, user)
 	if err != nil {
 		e := fmt.Sprintf("failed to list pdata: %s", err.Error())
-		return nil, status.Errorf(codes.Aborted, e)
+		return nil, status.Error(codes.Aborted, e)
 	}
 
 	var pdataPointers []*pbservice.Data

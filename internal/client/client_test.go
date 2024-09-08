@@ -29,7 +29,7 @@ func TestNewGclient_Success(t *testing.T) {
 	}
 
 	// Mock grpc.NewClientConn to simulate a successful connection
-	conn, err := grpc.Dial(clientConfig.ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(clientConfig.ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	assert.NoError(t, err)
 	defer conn.Close()
 

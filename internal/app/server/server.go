@@ -114,23 +114,23 @@ func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *lo
 	return minioclient.NewMinioClient(client), nil
 }
 
-func (app *App) SetDataRepo(dR repository.DataRepository) {
-	app.Workers.dataRepo = dR
+func (ap *App) SetDataRepo(dR repository.DataRepository) {
+	ap.Workers.dataRepo = dR
 }
 
-func (app *App) GetDataRepo() repository.DataRepository {
-	return app.Workers.dataRepo
+func (ap *App) GetDataRepo() repository.DataRepository {
+	return ap.Workers.dataRepo
 }
 
 // Репозиторий по работе с пользователем
-func (app *App) SetUserRepo(uR repository.UserRepository) {
-	app.Workers.userRepo = uR
+func (ap *App) SetUserRepo(uR repository.UserRepository) {
+	ap.Workers.userRepo = uR
 }
-func (app *App) GetUserRepo() repository.UserRepository {
-	return app.Workers.userRepo
+func (ap *App) GetUserRepo() repository.UserRepository {
+	return ap.Workers.userRepo
 }
 
-func (app *App) MigrateDBPG() error {
+func (ap *App) MigrateDBPG() error {
 	goose.SetBaseFS(migrations.Migrations)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -144,9 +144,9 @@ func (app *App) MigrateDBPG() error {
 }
 
 // Репозиторий по работе с документами
-func (app *App) SetDBFileRepo(fR repository.FileRepository) {
-	app.Workers.fileRepo = fR
+func (ap *App) SetDBFileRepo(fR repository.FileRepository) {
+	ap.Workers.fileRepo = fR
 }
-func (app *App) GetFileRepo() repository.FileRepository {
-	return app.Workers.fileRepo
+func (ap *App) GetFileRepo() repository.FileRepository {
+	return ap.Workers.fileRepo
 }

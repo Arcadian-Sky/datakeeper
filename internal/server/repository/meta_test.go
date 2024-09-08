@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/model"
@@ -158,6 +159,48 @@ func TestDataRepo_GetList(t *testing.T) {
 				mock.ExpectQuery(`SELECT id, dtype, title, card_number, login, password FROM metadata WHERE user_id = \$1 ORDER BY id`).
 					WithArgs(1).
 					WillReturnError(sql.ErrConnDone)
+			},
+			args: args{
+				ctx: context.Background(),
+				user: &model.User{
+					ID: 1,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ScanError",
+			mock: func(mock sqlmock.Sqlmock) {
+				// Настройка мока для успешного выполнения запроса, но с ошибкой сканирования
+				rows := sqlmock.NewRows([]string{"id", "dtype", "title", "card_number", "login", "password"}).
+					AddRow("wrong_type", "type1", "title1", "card1", "login1", "password1") // Wrong type for `id`
+
+				mock.ExpectQuery(`SELECT id, dtype, title, card_number, login, password FROM metadata WHERE user_id = \$1 ORDER BY id`).
+					WithArgs(1).
+					WillReturnRows(rows)
+			},
+			args: args{
+				ctx: context.Background(),
+				user: &model.User{
+					ID: 1,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "IterationError",
+			mock: func(mock sqlmock.Sqlmock) {
+				// Настройка мока для успешного выполнения запроса, но с ошибкой итерации
+				rows := sqlmock.NewRows([]string{"id", "dtype", "title", "card_number", "login", "password"}).
+					AddRow(1, "type1", "title1", "card1", "login1", "password1")
+
+				mock.ExpectQuery(`SELECT id, dtype, title, card_number, login, password FROM metadata WHERE user_id = \$1 ORDER BY id`).
+					WithArgs(1).
+					WillReturnRows(rows)
+
+				rows.RowError(0, fmt.Errorf("row iteration error"))
 			},
 			args: args{
 				ctx: context.Background(),

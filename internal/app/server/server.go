@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/Arcadian-Sky/datakkeeper/internal/server/repository"
@@ -15,8 +16,6 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type Workers struct {
@@ -37,54 +36,45 @@ type App struct {
 }
 
 func NewApp(ctx *context.Context, ctcf *context.CancelFunc) (*App, error) {
+	app := App{
+		Workers: &Workers{},
+		Ctx:     *ctx,
+		CncF:    *ctcf,
+	}
+	logg := NewLogger()
+	app.Logger = logg
+
+	parsed := settings.Parse()
+	app.Logger.Debug("parsed: ", parsed, "\n")
+
+	//set db pg connect
+	app.Logger.Debug("parsed.PGDBSettings: ", parsed.DBPGSettings, "\n")
+	dbP, err := NewConnectionToPostgresDB(parsed.DBPGSettings, logg)
+	if err != nil {
+		return &app, errors.New("failed to connect to db: " + err.Error())
+	}
+
+	app.Logger.Debug("parsed.MinIOSettings: ", parsed.Storage, "\n")
+	client, err := NewСonnectToMinIO(app.Ctx, parsed.Storage, logg)
+	if err != nil {
+		return &app, errors.New("failed to connect to starage: " + err.Error())
+	}
+
+	app.DBPG = dbP
+	app.Storage = client
+	app.Flags = parsed
+
+	return &app, nil
+}
+
+func NewLogger() *logrus.Logger {
 	logg := logrus.New()
 	logg.SetLevel(logrus.TraceLevel)
 	logg.SetFormatter(&logrus.TextFormatter{
 		ForceColors:   true,  // Включить цвета в выводе
 		FullTimestamp: false, // Включить полный временной штамп
 	})
-	app := App{
-		Logger:  logg,
-		Workers: &Workers{},
-		Ctx:     *ctx,
-		CncF:    *ctcf,
-	}
-	parsed := settings.Parse()
-	logg.Debug("parsed: ", parsed, "\n")
-	//set logger
-	// logg.SetFormatter(&logrus.JSONFormatter{})
-
-	//set db pg connect
-	logg.Debug("parsed.PGDBSettings: ", parsed.DBPGSettings, "\n")
-	dbP, err := NewConnectionToPostgresDB(parsed.DBPGSettings, logg)
-	if err != nil {
-		return &app, err
-	}
-
-	// TODO
-	// logg.Log(logrus.DebugLevel, "parsed.DBMGSettings: ", parsed.DBMGSettings, "\n")
-	// dbM, err := NewСonnectToMongoDB(parsed.DBMGSettings, logg)
-	// if err != nil {
-	// 	return &app, err
-	// }
-	// defer func() {
-	// 	if err := dbM.Disconnect(context.TODO()); err != nil {
-	// 		logg.Fatalf("Failed to disconnect from MongoDB: %v", err)
-	// 	}
-	// }()
-
-	logg.Debug("parsed.MinIOSettings: ", parsed.Storage, "\n")
-	client, err := NewСonnectToMinIO(app.Ctx, parsed.Storage, logg)
-	if err != nil {
-		logg.Fatalf("Failed to connect to MinIO: %v", err)
-	}
-
-	app.DBPG = dbP
-	// app.DBMG = dbM
-	app.Storage = client
-	app.Flags = parsed
-
-	return &app, nil
+	return logg
 }
 
 // Подключение к постгрес
@@ -105,28 +95,28 @@ func NewConnectionToPostgresDB(dsn string, logg *logrus.Logger) (*sql.DB, error)
 }
 
 // Подключение к mongo
-func NewСonnectToMongoDB(uri string, logg *logrus.Logger) (*mongo.Client, error) {
-	// Создаем контекст с таймаутом
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+// func NewСonnectToMongoDB(uri string, logg *logrus.Logger) (*mongo.Client, error) {
+// 	// Создаем контекст с таймаутом
+// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+// 	defer cancel()
 
-	// Настройка параметров подключения
-	clientOptions := options.Client().ApplyURI(uri)
+// 	// Настройка параметров подключения
+// 	clientOptions := options.Client().ApplyURI(uri)
 
-	// Подключение к MongoDB
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		return nil, err
-	}
+// 	// Подключение к MongoDB
+// 	client, err := mongo.Connect(ctx, clientOptions)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	// Проверка соединения
-	if err := client.Ping(ctx, readpref.Primary()); err != nil {
-		return nil, err
-	}
+// 	// Проверка соединения
+// 	if err := client.Ping(ctx, readpref.Primary()); err != nil {
+// 		return nil, err
+// 	}
 
-	logg.Log(logrus.InfoLevel, "Successfully connected to MongoDB")
-	return client, nil
-}
+// 	logg.Log(logrus.InfoLevel, "Successfully connected to MongoDB")
+// 	return client, nil
+// }
 
 // Подключение к minio
 func NewСonnectToMinIO(ctx context.Context, settings settings.Storage, logg *logrus.Logger) (minioclient.MinioClient, error) {

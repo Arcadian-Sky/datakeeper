@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -334,43 +335,10 @@ func Test_postProcess(t *testing.T) {
 	}
 }
 
-// func Test_serverStreamWithContext_Context(t *testing.T) {
-// 	// Define the test context and create an instance of serverStreamWithContext
-// 	expectedCtx := context.WithValue(context.Background(), jwtrule.CtxKeyUserID, "testValue")
-
-// 	// Mocking ServerStream
-// 	mockServerStream := &mockServerStream{}
-
-// 	// Create instance of serverStreamWithContext with the test context
-// 	s := &serverStreamWithContext{
-// 		ServerStream: mockServerStream,
-// 		ctx:          expectedCtx,
-// 	}
-
-// 	// Call the Context method
-// 	actualCtx := s.Context()
-
-// 	// Check if the returned context is the same as the expected context
-// 	assert.Equal(t, expectedCtx, actualCtx, "Expected context does not match the actual context")
-
-// 	// Optional: Verify that the value set in the context is present
-// 	value := actualCtx.Value("testKey")
-// 	assert.Equal(t, "testValue", value, "Context value does not match")
-// }
-
-// MockServerStream is a mock implementation of grpc.ServerStream for testing
-// type mockServerStream struct {
-// 	grpc.ServerStream
-// }
-
-// serverStreamWithContext - структура для тестирования
-
 // NewServerStreamWithContext - функция для создания экземпляра serverStreamWithContext
 func NewServerTestStreamWithContext(ctx context.Context) *serverStreamWithContext {
 	return &serverStreamWithContext{ctx: ctx}
 }
-
-// TestContext проверяет, что метод Context возвращает правильный контекст.
 
 type contextKey string
 
@@ -394,34 +362,61 @@ func TestContext(t *testing.T) {
 	assert.Equal(t, "value", actualCtx.Value(keyTest))
 }
 
-// func TestStreamInterceptor_AuthorizationFailure(t *testing.T) {
-// 	ctrl := gomock.NewController(t)
-// 	defer ctrl.Finish()
+// MockServerStream is a mock of grpc.ServerStream.
+type MockServerStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
 
-// 	mockLogger := logrus.New()
-// 	mockLogger.SetLevel(logrus.TraceLevel)
+// Context returns the context associated with the stream.
+func (m *MockServerStream) Context() context.Context {
+	return m.ctx
+}
 
-// 	// Интерцептор, который мы тестируем
-// 	interceptor := StreamInterceptor(mockLogger, "test-secret-key")
+func TestStreamInterceptor(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-// 	// Создаем mock серверный поток
-// 	mockServerStream := pbservice.NewMockDataKeeperServiceServer(ctrl)
-// 	mockServerStream.EXPECT().Context().Return(context.Background())
+	// Setup the logger
+	logger := logrus.New()
+	logger.SetLevel(logrus.TraceLevel)
 
-// 	// Настроим mock для checkAuth, чтобы он возвращал ошибку
-// 	mockCheckAuth := func(ctx *context.Context, log *logrus.Logger, secretKey string, fullMethod string, headers interface{}) (*jwtrule.Token, error) {
-// 		return nil, status.Errorf(codes.Unauthenticated, "auth error")
-// 	}
+	// Define secret key
+	secretKey := "test-secret-key"
 
-// 	// Выполним тест
-// 	err := interceptor(
-// 		nil,              // srv
-// 		mockServerStream, // ss
-// 		&grpc.StreamServerInfo{FullMethod: "/test/method"},               // info
-// 		func(srv interface{}, ss grpc.ServerStream) error { return nil }, // handler
-// 	)
+	// Define the StreamHandler mock
+	mockHandler := func(srv interface{}, ss grpc.ServerStream) error {
+		// Simulate the handler processing
+		return nil
+	}
 
-// 	// Проверяем результаты
-// 	assert.Error(t, err)
-// 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
-// }
+	jwToken, err := jwtrule.Generate(123, secretKey)
+	assert.NoError(t, err)
+
+	// Создаем метаданные и добавляем туда заголовок Authorization с типом Bearer
+	md := metadata.New(map[string]string{"authorization": "bearer " + jwToken.Token})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// Create a context with metadata
+	// ctx := context.WithValue(context.Background(), "authorization", "Bearer test-token")
+
+	// Create a mock ServerStream
+	mockStream := &MockServerStream{
+		ctx: ctx,
+	}
+
+	// Create an instance of StreamInterceptor
+	interceptor := StreamInterceptor(logger, secretKey)
+
+	// Call the interceptor
+	err = interceptor(
+		nil,        // srv
+		mockStream, // ss
+		&grpc.StreamServerInfo{FullMethod: "/TestService/TestMethod"},
+		mockHandler,
+	)
+
+	// Assertions
+	require.NoError(t, err)
+
+}

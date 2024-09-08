@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Arcadian-Sky/datakkeeper/mocks"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,6 @@ func TestGetFileRepo(t *testing.T) {
 
 	// Получаем FileRepository через метод GetFileRepo
 	_ = app.GetFileRepo()
-
 }
 
 func TestSetDBFileRepo(t *testing.T) {
@@ -91,6 +91,36 @@ func TestSetAndGetDataRepo(t *testing.T) {
 	// Assert that the returned repository is the same as the one set
 	assert.Equal(t, mockDataRepo, *retrievedRepo, "Expected GetDataRepo to return the same repository that was set")
 }
-func TestMigrateDBPG(t *testing.T) {
+
+func TestNewLogger(t *testing.T) {
+	logger := NewLogger()
+
+	assert.NotNil(t, logger)
+
+	assert.Equal(t, logrus.TraceLevel, logger.GetLevel())
+
+	textFormatter, ok := logger.Formatter.(*logrus.TextFormatter)
+	assert.True(t, ok, "Expected TextFormatter")
+
+	assert.True(t, textFormatter.ForceColors)
+
+	assert.False(t, textFormatter.FullTimestamp)
+}
+
+func TestNewConnectionToPostgresDB(t *testing.T) {
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+
+	// Mocking the database
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// Mock ping expectation
+	mock.ExpectPing()
+
+	// Call the function
+	_, err = NewConnectionToPostgresDB("postgres://mockuser:mockpass@localhost/db", logger)
+	assert.Error(t, err)
 
 }

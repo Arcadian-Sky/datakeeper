@@ -64,7 +64,6 @@ func StreamInterceptor(log *logrus.Logger, secretKey string) grpc.StreamServerIn
 		preProcess(ctx, info.FullMethod, log, secretKey)
 
 		jwToken, err := checkAuth(&ctx, log, secretKey, info.FullMethod, nil)
-		log.Trace("--> jwToken: ", jwToken.Claims.UserID)
 		log.Trace("--> err: ", err)
 		if err != nil {
 			return err
@@ -72,6 +71,7 @@ func StreamInterceptor(log *logrus.Logger, secretKey string) grpc.StreamServerIn
 			ctx = jwtrule.SetUserIDToCTX(ctx, int(jwToken.Claims.UserID))
 			ss = &serverStreamWithContext{ServerStream: ss, ctx: ctx}
 		}
+		log.Trace("--> jwToken: ", jwToken.Claims.UserID)
 		// Call the handler
 		err = handler(srv, ss)
 

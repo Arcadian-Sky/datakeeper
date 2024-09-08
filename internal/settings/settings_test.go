@@ -56,7 +56,7 @@ func TestParse_DefaultValues(t *testing.T) {
 	flags := Parse()
 
 	// Validate the results
-	assert.Equal(t, ":8080", flags.Endpoint)
+	assert.Equal(t, "localhost:8080", flags.Endpoint)
 	assert.Equal(t, "", flags.DBPGSettings)
 	assert.Equal(t, "", flags.DBMGSettings)
 	assert.NotEmpty(t, flags.SecretKey) // Ensure secret key is generated

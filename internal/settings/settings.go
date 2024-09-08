@@ -28,7 +28,7 @@ type InitedFlags struct {
 }
 
 func Parse() *InitedFlags {
-	end := flag.String("a", ":8080", "endpoint address")
+	end := flag.String("a", "localhost:8080", "endpoint address")
 	flagPBDBSettings := flag.String("dp", "", "Адрес подключения к БД")
 	flagMBDBSettings := flag.String("dm", "", "Адрес подключения к БД")
 

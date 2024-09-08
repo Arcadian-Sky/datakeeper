@@ -12,7 +12,7 @@ func TestGetClientConfig(t *testing.T) {
 
 	// Assertions
 	var expected = ClientConfig{
-		ServerAddress: ":8080",
+		ServerAddress: "localhost:8080",
 		UseTLS:        false,
 	}
 

@@ -10,4 +10,4 @@ coverage:
   # - "**/*.pb.validate.go"
   # - "./internal/server/repository/client/**"
   - "./internal/app/client/**"
-  - "./internal/app/server/**"
+  # - "./internal/app/server/**"

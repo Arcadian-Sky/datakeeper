@@ -10,7 +10,6 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 
 option go_package = "internal/service/data";
 
-
 // Enum для описания типов данных
 enum DataType {
   DATA_TYPE_UNSPECIFIED = 0; // Произвольные текстовые данные
@@ -33,17 +32,23 @@ message FileItem {
   string key = 2;
 }
 
-message GetFileRequest {string name = 1;}
+message GetFileRequest {
+  string name = 1;
+}
+
 // Мписок файлов
 message ListFileRequest {}
-message ListFileResponse {repeated FileItem fileitem = 1;}
+message ListFileResponse {
+  repeated FileItem fileitem = 1;
+}
 
 // Загрузка файла
 // Сообщение, представляющее собой часть файла
 message FileChunk {
-  bytes data = 1;  // Содержимое файла
+  bytes data = 1; // Содержимое файла
   string filename = 2; // Имя файла (передается один раз в начале)
 }
+
 // Команда удаления файла
 message DeleteFileRequest {
   string filename = 1;
@@ -56,31 +61,41 @@ message UploadStatus {
 }
 
 // Сохранение
-message SaveDataRequest {Data data = 1;}
+message SaveDataRequest {
+  Data data = 1;
+}
 
 // Получение
-message GetDataRequest {int64 dataid = 1;}
-message GetDataResponse {Data data = 1;}
-// Список
-message ListDataRequest {DataType type = 1;}
-message ListDataResponse {repeated Data data = 1;}
-// Удаление
-message DeleteDataRequest {int64 dataid = 1;}
+message GetDataRequest {
+  int64 dataid = 1;
+}
+message GetDataResponse {
+  Data data = 1;
+}
 
+// Список
+message ListDataRequest {
+  DataType type = 1;
+}
+message ListDataResponse {
+  repeated Data data = 1;
+}
+
+// Удаление
+message DeleteDataRequest {
+  int64 dataid = 1;
+}
 
 // Определение gRPC-сервиса для управления данными
-service DataKeeperService {  
+service DataKeeperService {
   // Хранение новых данных на сервере (кроме файлов)
   rpc SaveData(SaveDataRequest) returns (UploadStatus) {}
   rpc GetDataList(ListDataRequest) returns (ListDataResponse) {}
   rpc DeleteData(DeleteDataRequest) returns (UploadStatus) {}
-  
+
   // Отправка файлов на сервер
   rpc GetFileList(ListFileRequest) returns (ListFileResponse) {}
-  rpc UploadFile(stream FileChunk) returns (UploadStatus){}
-  rpc GetFile(GetFileRequest) returns (stream FileChunk){}
-  rpc DeleteFile(DeleteFileRequest) returns (UploadStatus){}
+  rpc UploadFile(stream FileChunk) returns (UploadStatus) {}
+  rpc GetFile(GetFileRequest) returns (stream FileChunk) {}
+  rpc DeleteFile(DeleteFileRequest) returns (UploadStatus) {}
 }
-
-
-

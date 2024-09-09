@@ -5,7 +5,7 @@ deps:
   - buf.build/bufbuild/protovalidate
 lint:
   use:
-    - DEFAULT
+    - STANDARD
   except:
     - IMPORT_USED
     - RPC_REQUEST_RESPONSE_UNIQUE

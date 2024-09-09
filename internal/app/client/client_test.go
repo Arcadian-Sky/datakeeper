@@ -351,6 +351,7 @@ func TestApp_acgtionSaveRegisterForm_Success(t *testing.T) {
 	app := NewEmptyApp()
 	app.client = mockClient
 	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
 
 	// Setup the form fields
 	app.person.registerForm.AddInputField("Login", "testuser", 20, nil, nil)
@@ -618,4 +619,239 @@ func TestApp_checkInputCardField(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+// TestApp_actionDeleteData tests the actionDeleteData method of the App struct
+func TestApp_actionDeleteData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+
+	// Define the ID to be deleted
+	idToDelete := int64(123)
+
+	// Test for successful deletion
+	t.Run("Success", func(t *testing.T) {
+		// Setup the mock to return no error
+		mockClient.EXPECT().Delete(idToDelete).Return(nil).Times(1)
+
+		// Create and call the action
+		action := app.appActionDeleteData(idToDelete)
+		action()
+
+		logLines := app.logView.GetText(true)
+		assert.Contains(t, logLines, "Delete pressed ID: 123")
+	})
+
+	// Test for failed deletion
+	t.Run("Failure", func(t *testing.T) {
+		// Setup the mock to return an error
+		mockClient.EXPECT().Delete(idToDelete).Return(fmt.Errorf("delete error")).Times(1)
+
+		// Create and call the action
+		action := app.appActionDeleteData(idToDelete)
+		action()
+
+		logLines := app.logView.GetText(true)
+		assert.Contains(t, logLines, "Delete pressed ID: 123")
+		assert.Contains(t, logLines, "Error delete item: delete error")
+	})
+}
+
+// TestApp_appActionGetFiles tests the appActionGetFiles method of the App struct
+func TestApp_appActionGetFiles(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+
+	name := "testfile"
+	id := "123"
+
+	// Test for successful file retrieval
+	t.Run("Success", func(t *testing.T) {
+		// Setup the mock to return no error
+		mockClient.EXPECT().GetFile(name).Return(nil).Times(1)
+
+		// Create and call the action
+		action := app.appActionGetFiles(name, id)
+		action()
+
+		assert.Contains(t, app.logView.GetText(true), "Getting started ID: 123")
+		assert.Contains(t, app.logView.GetText(true), "Got ID: 123")
+	})
+
+	// Test for failed file retrieval
+	t.Run("Failure", func(t *testing.T) {
+		// Setup the mock to return an error
+		mockClient.EXPECT().GetFile(name).Return(fmt.Errorf("get file error")).Times(1)
+
+		// Create and call the action
+		action := app.appActionGetFiles(name, id)
+		action()
+
+		logLines := app.logView.GetText(true)
+		assert.Contains(t, logLines, "Getting started ID: 123")
+		assert.Contains(t, logLines, "Error client GetFile: get file error")
+	})
+}
+
+// TestApp_appActionDeleteFiles tests the appActionDeleteFiles method of the App struct
+func TestApp_appActionDeleteFiles(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+
+	name := "testfile"
+	id := "123"
+
+	// Test for successful file deletion
+	t.Run("Success", func(t *testing.T) {
+		// Setup the mock to return no error
+		mockClient.EXPECT().DeleteFile(name).Return(nil).Times(1)
+
+		// Create and call the action
+		action := app.appActionDeleteFiles(name, id)
+		action()
+
+		// Check if the log view is cleared
+		assert.Contains(t, app.logView.GetText(true), "Deleted ID: 123")
+	})
+
+	// Test for failed file deletion
+	t.Run("Failure", func(t *testing.T) {
+		// Setup the mock to return an error
+		mockClient.EXPECT().DeleteFile(name).Return(fmt.Errorf("delete file error")).Times(1)
+
+		// Create and call the action
+		action := app.appActionDeleteFiles(name, id)
+		action()
+
+		// Verify the log message
+		logLines := app.logView.GetText(true)
+		assert.Contains(t, logLines, "Error client DeleteFile: delete file error")
+	})
+}
+
+func TestApp_actionSwitchToAuth_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToAuth()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage auth")
+}
+
+func TestApp_actionSwitchToRegister_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToRegister()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage register")
+}
+
+func TestApp_actionSwitchToMain_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToMain()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage main")
+}
+
+func TestApp_actionSwitchToDataList_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToDataList()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage datalist")
+}
+
+func TestApp_actionSwitchToMainWithClear_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToMainWithClear()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage main with clear")
 }

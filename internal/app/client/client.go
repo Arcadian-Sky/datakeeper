@@ -34,25 +34,27 @@ type Data struct {
 	move                     *tview.List
 }
 type App struct {
-	settings     *settings.ClientConfig
-	tapp         *tview.Application
-	person       Person
-	data         Data
-	pages        *tview.Pages
-	settingsForm *tview.Form
-	logView      *tview.TextView
-	client       client.GRPCClientInterface
-	Conn         *grpc.ClientConn
-	storage      *client.MemStorage
-	log          *logrus.Logger
+	settings            *settings.ClientConfig
+	tapp                *tview.Application
+	person              Person
+	data                Data
+	pages               *tview.Pages
+	settingsForm        *tview.Form
+	settingsFormButtons *FormRegister
+	logView             *tview.TextView
+	client              client.GRPCClientInterface
+	Conn                *grpc.ClientConn
+	storage             *client.MemStorage
+	log                 *logrus.Logger
 }
 
 func NewEmptyApp() *App {
 	return &App{
-		tapp:         tview.NewApplication(),
-		pages:        tview.NewPages(),
-		settingsForm: tview.NewForm(),
-		logView:      tview.NewTextView(),
+		tapp:                tview.NewApplication(),
+		pages:               tview.NewPages(),
+		settingsForm:        tview.NewForm(),
+		settingsFormButtons: &FormRegister{},
+		logView:             tview.NewTextView(),
 		person: Person{
 			authForm:            tview.NewForm(),
 			authFormButtons:     &FormRegister{},
@@ -136,7 +138,7 @@ func (app *App) actionAuth() {
 		return
 	}
 	app.storage.Login = login
-	app.pages.SwitchToPage("main")
+	app.actionSwitchToMain()
 }
 
 func (app *App) actionSaveRegisterForm() {
@@ -150,26 +152,36 @@ func (app *App) actionSaveRegisterForm() {
 		return
 	}
 	app.storage.Login = login
-	app.pages.SwitchToPage("main")
+	app.actionSwitchToMain()
 }
 
 func (app *App) actionSwitchToAuth() {
 	app.logView.Clear()
 	app.pages.SwitchToPage("auth")
+	app.log.Trace("SwitchToPage auth")
 }
 
 func (app *App) actionSwitchToRegister() {
 	app.logView.Clear()
 	app.pages.SwitchToPage("register")
+	app.log.Trace("SwitchToPage register")
 }
 
 func (app *App) actionSwitchToMain() {
 	app.pages.SwitchToPage("main")
+	app.log.Trace("SwitchToPage main")
+}
+
+func (app *App) actionSwitchToDataList() {
+	app.logView.Clear()
+	app.pages.SwitchToPage("datalist")
+	app.log.Trace("SwitchToPage datalist")
 }
 
 func (app *App) actionSwitchToMainWithClear() {
 	app.logView.Clear()
 	app.pages.SwitchToPage("main")
+	app.log.Trace("SwitchToPage main with clear")
 }
 
 func (app *App) appActionQuit() {
@@ -292,12 +304,10 @@ func (app *App) iniSettings() {
 			app.settings.ServerAddress = text
 		}).
 		// AddTextArea("Bucket", "", 40, 0, 0, nil).
-		AddButton("Back", func() {
-			app.pages.SwitchToPage("main")
-		}).
 		SetBorder(true).
 		SetTitle("Settings").
 		SetTitleAlign(tview.AlignLeft)
+	app.addAction(app.settingsForm, app.settingsFormButtons, "Cancel", app.actionSwitchToMain)
 }
 
 func (app *App) initPages() {
@@ -331,7 +341,7 @@ func (app *App) initPages() {
 
 	menu.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
 		app.logView.Clear()
-		app.log.Info(" Вы выбрали: ", string(shortcut))
+		app.log.Info("You chose: ", string(shortcut))
 	})
 
 	app.pages.AddPage("main", menu, true, true)
@@ -346,7 +356,7 @@ func (app *App) initPages() {
 
 	// Check if token is valid
 	if isTokenValid() {
-		app.pages.SwitchToPage("main")
+		app.actionSwitchToMain()
 	} else {
 		app.pages.SwitchToPage("auth")
 	}
@@ -455,68 +465,78 @@ func (app *App) updateFileDatalistPage(data []model.FileItem) {
 func (app *App) createMoveForm(id string, name, desc string) {
 	// Создаем форму с действиями
 	actionForm := tview.NewForm()
+	actionFormRegister := &FormRegister{}
 	actionForm.
-		AddTextView("ID", id, 0, 1, false, false).            // Показываем ID
-		AddTextView("Name", name, 0, 1, false, false).        // Показываем имя
-		AddTextView("Description", desc, 0, 1, false, false). // Показываем описание
-		AddButton("Назад", func() {
-			app.logView.Clear()
-			app.pages.SwitchToPage("datalist") // Возвращаемся к списку
-		}).
-		AddButton("Получить", func() {
-			app.logView.Clear()
-			err := app.client.GetFile(name)
-			if err != nil {
-				app.log.Info("Error client GetFile: ", err)
-				return
-			}
-			fmt.Printf("Получить нажато для ID: %v\n", id)
-		}).
-		AddButton("Удалить", func() {
-			app.logView.Clear()
-			err := app.client.DeleteFile(name)
-			if err != nil {
-				app.log.Info("Error client DeleteFile: ", err)
-				return
-			}
-			fmt.Printf("Удалить нажато для ID: %v\n", id)
-			app.pages.SwitchToPage("datalist") // Возвращаемся к списку
-		})
+		AddTextView("ID", id, 0, 1, false, false).
+		AddTextView("Name", name, 0, 1, false, false).
+		AddTextView("Description", desc, 0, 1, false, false)
+
+	app.addAction(actionForm, actionFormRegister, "Cancel", app.actionSwitchToDataList)
+	app.addAction(actionForm, actionFormRegister, "Get", app.appActionGetFiles(name, id))
+	app.addAction(actionForm, actionFormRegister, "Delete", app.appActionDeleteFiles(name, id))
 
 	// Устанавливаем форму как корневой элемент интерфейса
 	app.pages.AddPage("datalistmoveaction", actionForm, true, false)
 	app.pages.SwitchToPage("datalistmoveaction")
 }
 
+func (app *App) appActionGetFiles(name string, id string) func() {
+	return func() {
+		app.logView.Clear()
+		err := app.client.GetFile(name)
+		app.log.Info("Getting started ID: ", id, "\n")
+		if err != nil {
+			app.log.Info("Error client GetFile: ", err)
+			return
+		}
+		app.log.Info("Got ID: ", id)
+	}
+}
+
+func (app *App) appActionDeleteFiles(name string, id string) func() {
+	return func() {
+		app.logView.Clear()
+		err := app.client.DeleteFile(name)
+		if err != nil {
+			app.log.Info("Error client DeleteFile: ", err)
+			return
+		}
+		app.log.Info("Deleted ID: ", id, "\n")
+		app.pages.SwitchToPage("datalist")
+	}
+}
+
 // Detail page of type data with actions
 func (app *App) createDetailForm(item model.Data) {
 	// Создаем форму с действиями
 	actionForm := tview.NewForm()
+	actionFormRegister := &FormRegister{}
 	actionForm.
-		AddTextView("Name", item.Title, 0, 1, false, false).               // Показываем имя
-		AddTextView("ID", strconv.Itoa(int(item.ID)), 0, 1, false, false). // Показываем ID
-		AddTextView("type", item.Type, 0, 1, false, false).                // Показываем ID
-		AddTextView("Card", item.Card, 0, 1, false, false).                // Показываем ID
-		AddTextView("Login", item.Login, 0, 1, false, false).              // Показываем ID
-		AddTextView("Pass", item.Password, 0, 1, false, false).            // Показываем ID
-		AddButton("Назад", func() {
-			app.logView.Clear()
-			app.pages.SwitchToPage("datalist") // Возвращаемся к списку
-		}).
-		AddButton("Удалить", func() {
-			app.logView.Clear()
-			fmt.Printf("Удалить нажато для ID: %v\n", item.ID)
-			err := app.client.Delete(item.ID)
-			if err != nil {
-				app.log.Info("Error delete item: ", err)
-				return
-			}
-			app.pages.SwitchToPage("datalist") // Возвращаемся к списку
-		})
+		AddTextView("Name", item.Title, 0, 1, false, false).
+		AddTextView("ID", strconv.Itoa(int(item.ID)), 0, 1, false, false).
+		AddTextView("type", item.Type, 0, 1, false, false).
+		AddTextView("Card", item.Card, 0, 1, false, false).
+		AddTextView("Login", item.Login, 0, 1, false, false).
+		AddTextView("Pass", item.Password, 0, 1, false, false)
+	app.addAction(actionForm, actionFormRegister, "Cancel", app.actionSwitchToDataList)
+	app.addAction(actionForm, actionFormRegister, "Delete", app.appActionDeleteData(item.ID))
 
 	// Устанавливаем форму как корневой элемент интерфейса
 	app.pages.AddPage("datalistmoveaction", actionForm, true, false)
 	app.pages.SwitchToPage("datalistmoveaction")
+}
+
+func (app *App) appActionDeleteData(id int64) func() {
+	return func() {
+		app.logView.Clear()
+		app.log.Info("Delete pressed ID: ", id, "\n")
+		err := app.client.Delete(id)
+		if err != nil {
+			app.log.Info("Error delete item: ", err)
+			return
+		}
+		app.pages.SwitchToPage("datalist")
+	}
 }
 
 func (app *App) addAction(entity *tview.Form, register *FormRegister, title string, action func()) {

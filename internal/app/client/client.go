@@ -172,16 +172,46 @@ func (app *App) actionSwitchToMain() {
 	app.log.Trace("SwitchToPage main")
 }
 
-func (app *App) actionSwitchToDataList() {
-	app.logView.Clear()
-	app.pages.SwitchToPage("datalist")
-	app.log.Trace("SwitchToPage datalist")
-}
-
 func (app *App) actionSwitchToMainWithClear() {
 	app.logView.Clear()
 	app.pages.SwitchToPage("main")
 	app.log.Trace("SwitchToPage main with clear")
+}
+
+func (app *App) actionSwitchToDataListWithClear() {
+	app.logView.Clear()
+	app.pages.SwitchToPage("datalist")
+	app.log.Trace("SwitchToPage datalist with clear")
+}
+
+func (app *App) actionSwitchToDataList() {
+	app.pages.SwitchToPage("datalist")
+	app.log.Trace("SwitchToPage datalist")
+}
+
+func (app *App) actionSwitchToFileForm() {
+	app.pages.SwitchToPage("fileform")
+	app.log.Trace("SwitchToPage fileform")
+}
+
+func (app *App) actionSwitchToPerson() {
+	app.pages.SwitchToPage("person")
+	app.log.Trace("SwitchToPage person")
+}
+
+func (app *App) actionSwitchToLogpassForm() {
+	app.pages.SwitchToPage("loginpassform")
+	app.log.Trace("SwitchToPage loginpassform")
+}
+
+func (app *App) actionSwitchToCardForm() {
+	app.pages.SwitchToPage("cardform")
+	app.log.Trace("SwitchToPage cardform")
+}
+
+func (app *App) actionSwitchToSettings() {
+	app.pages.SwitchToPage("settings")
+	app.log.Trace("SwitchToPage settings")
 }
 
 func (app *App) appActionQuit() {
@@ -209,24 +239,28 @@ func (app *App) appActionLoadData() {
 	}
 }
 
-func (app *App) appActionSelectFiles() {
-	filename, err := dialog.File().Load()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error selecting file: %v\n", err)
-		return
-	}
+func (app *App) appActionSelectFiles(loadForm *tview.Form) func() {
+	return func() {
+		filename, err := dialog.File().Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error selecting file: %v\n", err)
+			return
+		}
 
-	// Устанавливаем выбранный файл в InputField
-	app.data.loadForm.GetFormItem(0).(*tview.InputField).SetText(filename)
+		// Устанавливаем выбранный файл в InputField
+		loadForm.GetFormItem(0).(*tview.InputField).SetText(filename)
+	}
 }
 
-func (app *App) appActionSendFiles() {
-	app.logView.Clear()
-	app.log.Info("Sending data...")
-	filePath := app.data.loadForm.GetFormItem(0).(*tview.InputField).GetText()
-	app.log.Info("File path: ", filePath)
-	if err := app.client.UploadFile(filePath); err != nil {
-		app.log.Info(fmt.Println("Error uploading file:", err))
+func (app *App) appActionSendFiles(loadForm *tview.Form) func() {
+	return func() {
+		app.logView.Clear()
+		app.log.Info("Sending data...")
+		filePath := loadForm.GetFormItem(0).(*tview.InputField).GetText()
+		app.log.Info("File path: ", filePath)
+		if err := app.client.UploadFile(filePath); err != nil {
+			app.log.Info(fmt.Println("Error uploading file:", err))
+		}
 	}
 }
 
@@ -273,8 +307,8 @@ func (app *App) initDataInterfaces() {
 	app.data.loadForm.
 		AddInputField("File Path", "", 40, nil, nil)
 
-	app.addAction(app.data.loadForm, app.data.loadFormButtons, "Select File", app.appActionSelectFiles)
-	app.addAction(app.data.loadForm, app.data.loadFormButtons, "Send", app.appActionSendFiles)
+	app.addAction(app.data.loadForm, app.data.loadFormButtons, "Select File", app.appActionSelectFiles(app.data.loadForm))
+	app.addAction(app.data.loadForm, app.data.loadFormButtons, "Send", app.appActionSendFiles(app.data.loadForm))
 	app.addAction(app.data.loadForm, app.data.loadFormButtons, "Cancel", app.actionSwitchToMainWithClear)
 
 	app.data.sendLoginPassForm.
@@ -322,27 +356,13 @@ func (app *App) initPages() {
 	// Создаем список переходов
 	menu.SetBorder(true).SetTitle("Main menu:").SetTitleAlign(tview.AlignLeft)
 	menu.
-		AddItem("Main", "Go to main page", '1', func() {
-			app.pages.SwitchToPage("person")
-		}).
-		AddItem("Data list", "View saved data", '2', func() {
-			app.pages.SwitchToPage("datalist")
-		}).
-		AddItem("Save file", "Send file", '3', func() {
-			app.pages.SwitchToPage("fileform")
-		}).
-		AddItem("Save auth data", "Send data login and password for domain", '4', func() {
-			app.pages.SwitchToPage("loginpassform")
-		}).
-		AddItem("Save card data", "Send credit card number", '5', func() {
-			app.pages.SwitchToPage("cardform")
-		}).
-		AddItem("Settings", "", 's', func() {
-			app.pages.SwitchToPage("settings")
-		}).
-		AddItem("Quit", "Close application", 'q', func() {
-			app.tapp.Stop()
-		})
+		AddItem("Main", "Go to main page", '1', app.actionSwitchToPerson).
+		AddItem("Data list", "View saved data", '2', app.actionSwitchToDataList).
+		AddItem("Save file", "Send file", '3', app.actionSwitchToFileForm).
+		AddItem("Save auth data", "Send data login and password for domain", '4', app.actionSwitchToLogpassForm).
+		AddItem("Save card data", "Send credit card number", '5', app.actionSwitchToCardForm).
+		AddItem("Settings", "", 's', app.actionSwitchToSettings).
+		AddItem("Quit", "Close application", 'q', app.appActionQuit)
 
 	menu.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
 		app.logView.Clear()
@@ -409,7 +429,7 @@ func (app *App) updateDatalistPage(data []model.Data) {
 
 	list := tview.NewList()
 	// Создание кнопки "Назад"
-	list.AddItem("Back", "", 'q', app.actionSwitchToDataList)
+	list.AddItem("Back", "", 'q', app.actionSwitchToDataListWithClear)
 
 	// Заполнение таблицы данными
 	for _, item := range data {
@@ -443,7 +463,7 @@ func (app *App) updateFileDatalistPage(data []model.FileItem) {
 
 	list := tview.NewList()
 	// Создание кнопки "Назад"
-	list.AddItem("Back", "", 'q', app.actionSwitchToDataList)
+	list.AddItem("Back", "", 'q', app.actionSwitchToDataListWithClear)
 
 	// Заполнение таблицы данными
 	for _, item := range data {
@@ -470,7 +490,7 @@ func (app *App) createMoveForm(id string, name, desc string) {
 		AddTextView("Name", name, 0, 1, false, false).
 		AddTextView("Description", desc, 0, 1, false, false)
 
-	app.addAction(actionForm, actionFormRegister, "Cancel", app.actionSwitchToDataList)
+	app.addAction(actionForm, actionFormRegister, "Cancel", app.actionSwitchToDataListWithClear)
 	app.addAction(actionForm, actionFormRegister, "Get", app.appActionGetFiles(name, id))
 	app.addAction(actionForm, actionFormRegister, "Delete", app.appActionDeleteFiles(name, id))
 
@@ -517,7 +537,7 @@ func (app *App) createDetailForm(item model.Data) {
 		AddTextView("Card", item.Card, 0, 1, false, false).
 		AddTextView("Login", item.Login, 0, 1, false, false).
 		AddTextView("Pass", item.Password, 0, 1, false, false)
-	app.addAction(actionForm, actionFormRegister, "Cancel", app.actionSwitchToDataList)
+	app.addAction(actionForm, actionFormRegister, "Cancel", app.actionSwitchToDataListWithClear)
 	app.addAction(actionForm, actionFormRegister, "Delete", app.appActionDeleteData(item.ID))
 
 	// Устанавливаем форму как корневой элемент интерфейса

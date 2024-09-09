@@ -365,7 +365,6 @@ func TestApp_acgtionSaveRegisterForm_Success(t *testing.T) {
 
 	// Assert the storage is updated and page is switched to "main"
 	assert.Equal(t, "testuser", app.storage.Login)
-	// assert.True(t, app.pages.HasPage("main"))
 }
 
 func TestApp_acgtionSaveRegisterForm_Error(t *testing.T) {
@@ -472,26 +471,6 @@ func TestApp_actionSwitchToAuth(t *testing.T) {
 	assert.True(t, app.pages.HasPage("auth"))
 }
 
-// type MockApp struct {
-// 	*App
-// 	mockCtrl *gomock.Controller
-// }
-
-// func NewMockApp(t *testing.T) *MockApp {
-// 	ctrl := gomock.NewController(t)
-// 	defer ctrl.Finish()
-
-// 	app := NewEmptyApp()
-// 	app.client = mocks.NewMockGRPCClientInterface(ctrl)
-// 	app.storage = client.NewMemStorage()
-// 	app.log = logrus.New()
-
-// 	return &MockApp{
-// 		App:      app,
-// 		mockCtrl: ctrl,
-// 	}
-// }
-
 func TestApp_actionSwitchToRegister(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -536,8 +515,8 @@ func TestApp_appActionSendFiles(t *testing.T) {
 	mockClient.EXPECT().UploadFile("/path/to/file").Return(nil).Times(1)
 
 	// Call the method
-	app.appActionSendFiles()
-
+	action := app.appActionSendFiles(app.data.loadForm)
+	action()
 	// Check if the log view is cleared
 	assert.Equal(t, "", app.logView.GetText(true))
 }
@@ -680,7 +659,6 @@ func TestApp_checkInputCardField(t *testing.T) {
 	}
 }
 
-// TestApp_actionDeleteData tests the actionDeleteData method of the App struct
 func TestApp_actionDeleteData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -725,7 +703,6 @@ func TestApp_actionDeleteData(t *testing.T) {
 	})
 }
 
-// TestApp_appActionGetFiles tests the appActionGetFiles method of the App struct
 func TestApp_appActionGetFiles(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -770,7 +747,6 @@ func TestApp_appActionGetFiles(t *testing.T) {
 	})
 }
 
-// TestApp_appActionDeleteFiles tests the appActionDeleteFiles method of the App struct
 func TestApp_appActionDeleteFiles(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -893,6 +869,126 @@ func TestApp_actionSwitchToDataList_Log(t *testing.T) {
 
 	logLines := app.logView.GetText(true)
 	assert.Contains(t, logLines, "SwitchToPage datalist")
+}
+
+func TestApp_actionSwitchToDataListWithClear_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToDataListWithClear()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage datalist with clear")
+}
+
+func TestApp_actionSwitchToFileForm_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToFileForm()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage fileform")
+}
+
+func TestApp_actionSwitchToPerson_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToPerson()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage person")
+}
+
+func TestApp_actionSwitchToLogpassForm_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToLogpassForm()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage loginpassform")
+}
+
+func TestApp_actionSwitchToCardForm_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToCardForm()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage cardform")
+}
+
+func TestApp_actionSwitchToSettings_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.actionSwitchToSettings()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "SwitchToPage settings")
 }
 
 func TestApp_actionSwitchToMainWithClear_Log(t *testing.T) {

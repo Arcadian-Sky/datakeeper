@@ -24,30 +24,32 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      
+    
+    - name: Install dependencies on Ubuntu
+      if: runner.os == 'Linux'
+      run: |
+          sudo apt-get clean
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev pkg-config
+
+    - name: Check dependencies
+      run: |
+        pkg-config --cflags gtk+-3.0
+    
+    
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go-version }}
-        
-    - name: Install dependencies 1
+      
+    - name: Install dependencies go
       run: go mod tidy
 
-    - name: Install dependencies 2
-      run: |
-        sudo apt-get clean
-        sudo apt-get update
-        sudo apt-get install -y libgtk-3-dev pkg-config
-        
-    - name: Check dependencies
-      run: |
-        pkg-config --cflags gtk+-3.0
-        
     - name: Build client
-      run: go build -o ./build/datakeeper ./cmd/client/main.go
+      run: go build -o ./bin/datakeeper ./cmd/client/main.go
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: client-${{ matrix.os }}-${{ matrix.go-version }}
-        path: ./build/datakeeper
+        path: ./bin/datakeeper

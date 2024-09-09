@@ -2,8 +2,10 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
+	"github.com/Arcadian-Sky/datakkeeper/internal/client"
 	"github.com/Arcadian-Sky/datakkeeper/internal/model"
 	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/Arcadian-Sky/datakkeeper/mocks"
@@ -337,4 +339,283 @@ func TestApp_AddAction(t *testing.T) {
 	// Assert that the action has been added to the register
 	assert.Contains(t, *register, title, "register should contain the added action title")
 	assert.Equal(t, (*register)[title], title, "The title in the register should match")
+}
+
+func TestApp_acgtionSaveRegisterForm_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+
+	// Setup the form fields
+	app.person.registerForm.AddInputField("Login", "testuser", 20, nil, nil)
+	app.person.registerForm.AddInputField("Password", "password", 20, nil, nil)
+
+	// Mock the Register method to succeed
+	mockClient.EXPECT().Register("testuser", "password").Return(nil)
+
+	// Call the method
+	app.actionSaveRegisterForm()
+
+	// Assert the storage is updated and page is switched to "main"
+	assert.Equal(t, "testuser", app.storage.Login)
+	// assert.True(t, app.pages.HasPage("main"))
+}
+
+func TestApp_acgtionSaveRegisterForm_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Setup the form fields
+	app.person.registerForm.AddInputField("Login", "testuser", 20, nil, nil)
+	app.person.registerForm.AddInputField("Password", "password", 20, nil, nil)
+
+	// Expect the Register method to be called and return an error
+	mockClient.EXPECT().Register("testuser", "password").Return(errors.New("registration error"))
+
+	// Call the method
+	app.actionSaveRegisterForm()
+
+	// Assert storage is not updated and page is not switched to "main"
+	assert.Empty(t, app.storage.Login)
+	assert.False(t, app.pages.HasPage("main"))
+}
+
+func TestApp_actionAuth_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Setup the form fields (login and password)
+	app.person.authForm.AddInputField("Login", "testuser", 20, nil, nil)
+	app.person.authForm.AddInputField("Password", "password", 20, nil, nil)
+
+	// Expect the Authenticate method to be called with "testuser" and "password"
+	mockClient.EXPECT().Authenticate("testuser", "password").Return(nil)
+
+	// Call the method
+	app.actionAuth()
+
+	// Assert the storage is updated and page is switched to "main"
+	assert.Equal(t, "testuser", app.storage.Login)
+}
+
+func TestApp_actionAuth_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Setup the form fields (login and password)
+	app.person.authForm.AddInputField("Login", "testuser", 20, nil, nil)
+	app.person.authForm.AddInputField("Password", "password", 20, nil, nil)
+
+	// Expect the Authenticate method to be called with "testuser" and "password" and return an error
+	mockClient.EXPECT().Authenticate("testuser", "password").Return(errors.New("authentication error"))
+
+	// Call the method
+	app.actionAuth()
+
+	// Assert storage is not updated and page is not switched to "main"
+	assert.Empty(t, app.storage.Login)
+}
+
+func TestApp_actionSwitchToAuth(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Add "auth" page to pages
+	app.pages.AddPage("auth", tview.NewTextView(), true, false)
+
+	// Call the method
+	app.actionSwitchToAuth()
+
+	// Check if the log view is cleared
+	assert.Equal(t, "", app.logView.GetText(true))
+
+	// Check if the page is switched to "auth"
+	assert.True(t, app.pages.HasPage("auth"))
+}
+
+// type MockApp struct {
+// 	*App
+// 	mockCtrl *gomock.Controller
+// }
+
+// func NewMockApp(t *testing.T) *MockApp {
+// 	ctrl := gomock.NewController(t)
+// 	defer ctrl.Finish()
+
+// 	app := NewEmptyApp()
+// 	app.client = mocks.NewMockGRPCClientInterface(ctrl)
+// 	app.storage = client.NewMemStorage()
+// 	app.log = logrus.New()
+
+// 	return &MockApp{
+// 		App:      app,
+// 		mockCtrl: ctrl,
+// 	}
+// }
+
+func TestApp_actionSwitchToRegister(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	app := NewEmptyApp()
+	app.client = mocks.NewMockGRPCClientInterface(ctrl)
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Add "register" page to pages
+	app.pages.AddPage("register", tview.NewTextView(), true, false)
+
+	// Call the method
+	app.actionSwitchToRegister()
+
+	// Check if the log view is cleared
+	assert.Equal(t, "", app.logView.GetText(true))
+
+	// Check if the page is switched to "register"
+	assert.True(t, app.pages.HasPage("register"))
+}
+
+func TestApp_appActionSendFiles(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Set up the form and input field
+	form := tview.NewForm()
+	inputField := tview.NewInputField().SetText("/path/to/file")
+	form.AddFormItem(inputField)
+	app.data.loadForm = form
+
+	// Define the behavior of the mock client
+	mockClient.EXPECT().UploadFile("/path/to/file").Return(nil).Times(1)
+
+	// Call the method
+	app.appActionSendFiles()
+
+	// Check if the log view is cleared
+	assert.Equal(t, "", app.logView.GetText(true))
+}
+
+func TestApp_appActionSendLoginPass(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Set up the form and input fields
+	form := tview.NewForm()
+	form.AddFormItem(tview.NewInputField().SetText("example.com"))
+	form.AddFormItem(tview.NewInputField().SetText("user"))
+	form.AddFormItem(tview.NewInputField().SetText("password"))
+	app.data.sendLoginPassForm = form
+
+	// Define the behavior of the mock client
+	mockClient.EXPECT().SaveLoginPass("example.com", "user", "password").Return(nil).Times(1)
+
+	// Call the method
+	app.appActionSendLoginPass()
+
+	// Check if the log view is cleared
+	assert.Equal(t, "", app.logView.GetText(true))
+}
+
+func TestApp_appActionSendCard(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Set up the form and input fields
+	form := tview.NewForm()
+	form.AddFormItem(tview.NewInputField().SetText("domain"))
+	form.AddFormItem(tview.NewInputField().SetText("cardnumber"))
+	app.data.sendCardForm = form
+
+	// Define the behavior of the mock client
+	mockClient.EXPECT().SaveCard("domain", "cardnumber").Return(nil).Times(1)
+
+	// Call the method
+	app.appActionSendCard()
+
+	// Check if the log view is cleared
+	assert.Equal(t, "", app.logView.GetText(true))
+}
+
+func TestApp_checkInputCardField(t *testing.T) {
+	app := &App{}
+
+	tests := []struct {
+		textToCheck string
+		lastChar    rune
+		expected    bool
+	}{
+		{"1234 5678", ' ', true},
+		{"1234 5678", '5', true},
+		{"1234 5678", 'a', false},
+		{"1234 5678", '\n', false},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s-%c", tt.textToCheck, tt.lastChar), func(t *testing.T) {
+			result := app.checkInputCardField(tt.textToCheck, tt.lastChar)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }

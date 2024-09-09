@@ -215,3 +215,15 @@ func TestNewConnectToMinIO_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, got)
 }
+
+func TestNewConnectionToPostgresDB_ConnectionError(t *testing.T) {
+	// Create a new logrus.Logger and a hook to capture log entries
+	logg := logrus.New()
+
+	// Call the function to test
+	db, err := NewConnectionToPostgresDB("invalid-dsn", logg)
+
+	// Assertions
+	assert.Nil(t, db, "db should be nil when there is a connection error")
+	assert.Error(t, err, "db should return err when there is a connection error")
+}

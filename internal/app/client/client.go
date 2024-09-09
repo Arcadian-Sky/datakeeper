@@ -14,18 +14,23 @@ import (
 	"google.golang.org/grpc"
 )
 
+type FormRegister map[string]string
 type Person struct {
-	authForm     *tview.Form
-	registerForm *tview.Form
-	Form         *tview.Form
+	authForm            *tview.Form
+	registerForm        *tview.Form
+	registerFormButtons *FormRegister
+	Form                *tview.Form
 }
 
 type Data struct {
-	loadForm          *tview.Form
-	sendLoginPassForm *tview.Form
-	sendCardForm      *tview.Form
-	list              *tview.List
-	move              *tview.List
+	loadForm                 *tview.Form
+	loadFormButtons          *FormRegister
+	sendLoginPassForm        *tview.Form
+	sendLoginPassFormButtons *FormRegister
+	sendCardForm             *tview.Form
+	sendCardFormButtons      *FormRegister
+	list                     *tview.List
+	move                     *tview.List
 }
 type App struct {
 	settings     *settings.ClientConfig
@@ -41,26 +46,33 @@ type App struct {
 	log          *logrus.Logger
 }
 
-func NewClientApp(st *settings.ClientConfig) *App {
-	app := &App{
+func NewEmptyApp() *App {
+	return &App{
 		tapp:         tview.NewApplication(),
 		pages:        tview.NewPages(),
 		settingsForm: tview.NewForm(),
 		logView:      tview.NewTextView(),
 		person: Person{
-			authForm:     tview.NewForm(),
-			registerForm: tview.NewForm(),
-			Form:         tview.NewForm(),
+			authForm:            tview.NewForm(),
+			registerForm:        tview.NewForm(),
+			registerFormButtons: &FormRegister{},
+			Form:                tview.NewForm(),
 		},
 		data: Data{
-			list:              tview.NewList(),
-			move:              tview.NewList(),
-			loadForm:          tview.NewForm(),
-			sendLoginPassForm: tview.NewForm(),
-			sendCardForm:      tview.NewForm(),
+			list:                     tview.NewList(),
+			move:                     tview.NewList(),
+			loadForm:                 tview.NewForm(),
+			loadFormButtons:          &FormRegister{},
+			sendLoginPassForm:        tview.NewForm(),
+			sendLoginPassFormButtons: &FormRegister{},
+			sendCardForm:             tview.NewForm(),
+			sendCardFormButtons:      &FormRegister{},
 		},
-		settings: st,
 	}
+}
+func NewClientApp(st *settings.ClientConfig) *App {
+	app := NewEmptyApp()
+	app.settings = st
 	app.log = logrus.New()
 	// app.log.SetFormatter(&logrus.JSONFormatter{})
 	app.log.SetFormatter(&logrus.TextFormatter{
@@ -116,27 +128,28 @@ func (app *App) initPersonInterfaces() {
 	app.person.registerForm.SetBorder(true).SetTitle("Enter some data").SetTitleAlign(tview.AlignLeft)
 	app.person.registerForm.
 		AddInputField("Login", "", 20, nil, nil).
-		AddPasswordField("Password", "", 10, '*', nil).
-		AddButton("Save", func() {
-			login := app.person.registerForm.GetFormItem(0).(*tview.InputField).GetText()
-			password := app.person.registerForm.GetFormItem(1).(*tview.InputField).GetText()
-			app.storage.Login = ""
-			app.logView.Clear()
-			err := app.client.Register(login, password)
-			if err != nil {
-				app.log.Info("Error client Register: ", err)
-				return
-			}
-			app.storage.Login = login
-			app.pages.SwitchToPage("main")
-		}).
-		AddButton("Switch to Authorize", func() {
-			app.logView.Clear()
-			app.pages.SwitchToPage("auth")
-		}).
-		AddButton("Quit", func() {
-			app.tapp.Stop()
-		})
+		AddPasswordField("Password", "", 10, '*', nil)
+
+	app.addAction(app.person.registerForm, app.person.registerFormButtons, "Save", func() {
+		login := app.person.registerForm.GetFormItem(0).(*tview.InputField).GetText()
+		password := app.person.registerForm.GetFormItem(1).(*tview.InputField).GetText()
+		app.storage.Login = ""
+		app.logView.Clear()
+		err := app.client.Register(login, password)
+		if err != nil {
+			app.log.Info("Error client Register: ", err)
+			return
+		}
+		app.storage.Login = login
+		app.pages.SwitchToPage("main")
+	})
+	app.addAction(app.person.registerForm, app.person.registerFormButtons, "Switch to Authorize", func() {
+		app.logView.Clear()
+		app.pages.SwitchToPage("auth")
+	})
+	app.addAction(app.person.registerForm, app.person.registerFormButtons, "Quit", func() {
+		app.tapp.Stop()
+	})
 
 	// Создаем формы для авторизации и регистрации
 	app.person.Form.SetBorder(true).SetTitle("Enter some data").SetTitleAlign(tview.AlignLeft)
@@ -144,7 +157,6 @@ func (app *App) initPersonInterfaces() {
 
 // Инициализация интерфейсов работы с данными
 func (app *App) initDataInterfaces() {
-
 	// Создаем интерфейс для отображения данных
 	app.data.list.SetTitle("Data List")
 	app.data.list.AddItem("Back", "Make click to run action", 'q', func() {
@@ -171,31 +183,34 @@ func (app *App) initDataInterfaces() {
 		SetBorder(true)
 
 	app.data.loadForm.
-		AddInputField("File Path", "", 40, nil, nil).
-		AddButton("Select File", func() {
-			filename, err := dialog.File().Load()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error selecting file: %v\n", err)
-				return
-			}
+		AddInputField("File Path", "", 40, nil, nil)
 
-			// Устанавливаем выбранный файл в InputField
-			app.data.loadForm.GetFormItem(0).(*tview.InputField).SetText(filename)
-		}).
-		AddButton("Send", func() {
-			app.logView.Clear()
-			app.log.Info("Sending data...")
-			filePath := app.data.loadForm.GetFormItem(0).(*tview.InputField).GetText()
-			app.log.Info("File path: ", filePath)
-			if err := app.client.UploadFile(filePath); err != nil {
-				app.log.Info(fmt.Println("Error uploading file:", err))
-			}
+	app.addAction(app.data.loadForm, app.data.loadFormButtons, "Select File", func() {
+		filename, err := dialog.File().Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error selecting file: %v\n", err)
+			return
+		}
 
-		}).
-		AddButton("Quit", func() {
-			app.logView.Clear()
-			app.pages.SwitchToPage("main")
-		})
+		// Устанавливаем выбранный файл в InputField
+		app.data.loadForm.GetFormItem(0).(*tview.InputField).SetText(filename)
+	})
+
+	app.addAction(app.data.loadForm, app.data.loadFormButtons, "Send", func() {
+		app.logView.Clear()
+		app.log.Info("Sending data...")
+		filePath := app.data.loadForm.GetFormItem(0).(*tview.InputField).GetText()
+		app.log.Info("File path: ", filePath)
+		if err := app.client.UploadFile(filePath); err != nil {
+			app.log.Info(fmt.Println("Error uploading file:", err))
+		}
+
+	})
+
+	app.addAction(app.data.loadForm, app.data.loadFormButtons, "Quit", func() {
+		app.logView.Clear()
+		app.pages.SwitchToPage("main")
+	})
 
 	app.data.sendLoginPassForm.
 		SetTitle("Send Auth Entry").
@@ -204,21 +219,22 @@ func (app *App) initDataInterfaces() {
 	app.data.sendLoginPassForm.
 		AddInputField("Domain", "", 20, nil, nil).
 		AddInputField("Login", "", 20, nil, nil).
-		AddPasswordField("Password", "", 20, '*', nil).
-		AddButton("Submit", func() { // Кнопка "Submit"
-			domain := app.data.sendLoginPassForm.GetFormItem(0).(*tview.InputField).GetText()
-			login := app.data.sendLoginPassForm.GetFormItem(1).(*tview.InputField).GetText()
-			password := app.data.sendLoginPassForm.GetFormItem(2).(*tview.InputField).GetText()
+		AddPasswordField("Password", "", 20, '*', nil)
+	app.addAction(app.data.sendLoginPassForm, app.data.sendLoginPassFormButtons, "Submit", func() {
+		domain := app.data.sendLoginPassForm.GetFormItem(0).(*tview.InputField).GetText()
+		login := app.data.sendLoginPassForm.GetFormItem(1).(*tview.InputField).GetText()
+		password := app.data.sendLoginPassForm.GetFormItem(2).(*tview.InputField).GetText()
 
-			app.log.Info(fmt.Printf("Login: %s, Password: %s\n, Domain: %s\n", login, "*****", domain))
+		app.log.Info(fmt.Printf("Login: %s, Password: %s\n, Domain: %s\n", login, "*****", domain))
 
-			if err := app.client.SaveLoginPass(domain, login, password); err != nil {
-				app.log.Info(fmt.Println("Error saveing login pass:", err))
-			}
-		}).
-		AddButton("Quit", func() {
-			app.pages.SwitchToPage("main")
-		})
+		if err := app.client.SaveLoginPass(domain, login, password); err != nil {
+			app.log.Info(fmt.Println("Error saveing login pass:", err))
+		}
+	})
+
+	app.addAction(app.data.sendLoginPassForm, app.data.sendLoginPassFormButtons, "Quit", func() {
+		app.pages.SwitchToPage("main")
+	})
 
 	app.data.sendCardForm.
 		SetTitle("Send Card Entry").
@@ -229,19 +245,20 @@ func (app *App) initDataInterfaces() {
 		AddInputField("Card Number", "", 20, func(textToCheck string, lastChar rune) bool {
 			// Allow only numbers and spaces in the card number field
 			return (lastChar >= '0' && lastChar <= '9') || lastChar == ' '
-		}, nil).
-		AddButton("Submit", func() {
-			domain := app.data.sendCardForm.GetFormItem(0).(*tview.InputField).GetText()
-			card := app.data.sendCardForm.GetFormItem(1).(*tview.InputField).GetText()
+		}, nil)
+	app.addAction(app.data.sendCardForm, app.data.sendCardFormButtons, "Submit", func() {
+		domain := app.data.sendCardForm.GetFormItem(0).(*tview.InputField).GetText()
+		card := app.data.sendCardForm.GetFormItem(1).(*tview.InputField).GetText()
 
-			app.log.Info(fmt.Printf("Title: %s, Card: %s\n", domain, card))
-			if err := app.client.SaveCard(domain, card); err != nil {
-				app.log.Info(fmt.Println("Error saveing login pass:", err))
-			}
-		}).
-		AddButton("Cancel", func() {
-			app.pages.SwitchToPage("main")
-		})
+		app.log.Info(fmt.Printf("Title: %s, Card: %s\n", domain, card))
+		if err := app.client.SaveCard(domain, card); err != nil {
+			app.log.Info(fmt.Println("Error saveing login pass:", err))
+		}
+	})
+
+	app.addAction(app.data.sendCardForm, app.data.sendCardFormButtons, "Cancel", func() {
+		app.pages.SwitchToPage("main")
+	})
 
 }
 
@@ -478,4 +495,9 @@ func (app *App) createDetailForm(item model.Data) {
 	// Устанавливаем форму как корневой элемент интерфейса
 	app.pages.AddPage("datalistmoveaction", actionForm, true, false)
 	app.pages.SwitchToPage("datalistmoveaction")
+}
+
+func (app *App) addAction(entity *tview.Form, register *FormRegister, title string, action func()) {
+	(*register)[title] = title
+	entity.AddButton(title, action)
 }

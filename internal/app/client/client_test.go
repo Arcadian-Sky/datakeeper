@@ -20,17 +20,8 @@ func TestInitDataInterfaces(t *testing.T) {
 	// Создаем mock клиента
 	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
 
-	app := &App{
-		data: Data{
-			list:              tview.NewList(),
-			loadForm:          tview.NewForm(),
-			sendLoginPassForm: tview.NewForm(),
-			sendCardForm:      tview.NewForm(),
-		},
-		pages:   tview.NewPages(),
-		logView: tview.NewTextView(),
-		client:  mockClient,
-	}
+	app := NewEmptyApp()
+	app.client = mockClient
 
 	app.initDataInterfaces()
 
@@ -42,12 +33,9 @@ func TestInitDataInterfaces(t *testing.T) {
 }
 
 func TestIniSettings(t *testing.T) {
-	app := &App{
-		settings: &settings.ClientConfig{
-			ServerAddress: "1111",
-		},
-		settingsForm: tview.NewForm(),
-		pages:        tview.NewPages(),
+	app := NewEmptyApp()
+	app.settings = &settings.ClientConfig{
+		ServerAddress: "1111",
 	}
 
 	app.iniSettings()
@@ -57,29 +45,14 @@ func TestIniSettings(t *testing.T) {
 }
 
 func TestInitPages(t *testing.T) {
-	app := &App{
-		tapp:         tview.NewApplication(),
-		pages:        tview.NewPages(),
-		settingsForm: tview.NewForm(),
-		logView:      tview.NewTextView(),
-		person: Person{
-			authForm:     tview.NewForm(),
-			registerForm: tview.NewForm(),
-			Form:         tview.NewForm(),
-		},
-		data: Data{
-			list:              tview.NewList(),
-			move:              tview.NewList(),
-			loadForm:          tview.NewForm(),
-			sendLoginPassForm: tview.NewForm(),
-			sendCardForm:      tview.NewForm(),
-		},
-		settings: &settings.ClientConfig{
-			ServerAddress: "1111",
-		},
-		log: logrus.New(),
+	app := NewEmptyApp()
+
+	app.settings = &settings.ClientConfig{
+		ServerAddress: "1111",
 	}
+	app.log = logrus.New()
 	// app.log.SetFormatter(&logrus.JSONFormatter{})
+
 	app.log.SetFormatter(&logrus.TextFormatter{
 		ForceColors:   true,  // Включить цвета в выводе
 		FullTimestamp: false, // Включить полный временной штамп
@@ -126,11 +99,8 @@ func TestAppLoadData_Success(t *testing.T) {
 	mockClient.EXPECT().GetDataList().Return(mockData, nil)
 
 	// Создаем экземпляр приложения с mock клиентом
-	app := &App{
-		tapp:   tview.NewApplication(),
-		pages:  tview.NewPages(),
-		client: mockClient,
-	}
+	app := NewEmptyApp()
+	app.client = mockClient
 
 	// Вызываем тестируемый метод
 	err := app.loadData()
@@ -151,11 +121,8 @@ func TestAppLoadData_Error(t *testing.T) {
 	mockClient.EXPECT().GetDataList().Return(nil, errors.New("client error"))
 
 	// Создаем экземпляр приложения с mock клиентом
-	app := &App{
-		tapp:   tview.NewApplication(),
-		pages:  tview.NewPages(),
-		client: mockClient,
-	}
+	app := NewEmptyApp()
+	app.client = mockClient
 
 	// Вызываем тестируемый метод
 	err := app.loadData()
@@ -172,10 +139,7 @@ func TestAppUpdateDatalistPage(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Создаем mock для страницы
-	pages := tview.NewPages()
-	app := &App{
-		pages: pages,
-	}
+	app := NewEmptyApp()
 
 	// Пример данных для обновления
 	mockData := []model.Data{
@@ -204,11 +168,8 @@ func TestAppLoadFiles_Success(t *testing.T) {
 	mockClient.EXPECT().GetFileList().Return(mockData, nil)
 
 	// Создаем экземпляр приложения с mock клиентом
-	app := &App{
-		tapp:   tview.NewApplication(),
-		pages:  tview.NewPages(),
-		client: mockClient,
-	}
+	app := NewEmptyApp()
+	app.client = mockClient
 
 	// Вызываем тестируемый метод
 	err := app.loadFiles()
@@ -228,9 +189,8 @@ func TestAppLoadFiles_Error(t *testing.T) {
 	mockClient.EXPECT().GetFileList().Return(nil, errors.New("stream error"))
 
 	// Создаем экземпляр приложения с mock клиентом
-	app := &App{
-		client: mockClient,
-	}
+	app := NewEmptyApp()
+	app.client = mockClient
 
 	// Вызываем тестируемый метод
 	err := app.loadFiles()
@@ -247,12 +207,8 @@ func TestAppUpdateFileDatalistPage(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Создаем экземпляр приложения
-	app := &App{
-		tapp:    tview.NewApplication(),
-		pages:   tview.NewPages(),
-		logView: tview.NewTextView(),
-		log:     logrus.New(),
-	}
+	app := NewEmptyApp()
+	app.log = logrus.New()
 
 	// Пример данных для списка файлов
 	data := []model.FileItem{
@@ -276,12 +232,8 @@ func TestAppCreateMoveForm(t *testing.T) {
 	// Mock GRPCClient
 
 	// Создаем экземпляр приложения
-	app := &App{
-		tapp:    tview.NewApplication(),
-		pages:   tview.NewPages(),
-		logView: tview.NewTextView(),
-		log:     logrus.New(),
-	}
+	app := NewEmptyApp()
+	app.log = logrus.New()
 
 	// Входные данные для теста
 	id := "12345"
@@ -301,14 +253,7 @@ func TestAppInitialization(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Создаем экземпляр приложения
-	app := &App{
-		// tapp:   tview.NewApplication(),
-		person: Person{},
-		data:   Data{},
-		pages:  tview.NewPages(),
-		// Conn:   &grpc.ClientConn{}, // Можно мокировать при необходимости
-		// log:    logrus.New(),
-	}
+	app := NewEmptyApp()
 
 	// Инициализация форм
 	app.person.authForm = tview.NewForm()
@@ -357,11 +302,8 @@ func TestCreateDetailForm(t *testing.T) {
 	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
 
 	// Инициализация тестового приложения
-	app := &App{
-		pages:   tview.NewPages(),
-		logView: tview.NewTextView(),
-		client:  mockClient,
-	}
+	app := NewEmptyApp()
+	app.client = mockClient
 
 	// Тестовые данные
 	item := model.Data{
@@ -378,4 +320,21 @@ func TestCreateDetailForm(t *testing.T) {
 
 	pageNames := app.pages.GetPageNames(false)
 	assert.Contains(t, pageNames, "datalistmoveaction", "Page 'datalistmoveaction' should be added")
+}
+
+func TestApp_AddAction(t *testing.T) {
+	// Create a new instance of App
+	app := &App{}
+
+	// Create a new tview.Form and FormRegister (which is a map)
+	form := tview.NewForm()
+	register := &FormRegister{}
+
+	// Call addAction to add a button and register the action
+	title := "Submit"
+	app.addAction(form, register, title, func() {})
+
+	// Assert that the action has been added to the register
+	assert.Contains(t, *register, title, "register should contain the added action title")
+	assert.Equal(t, (*register)[title], title, "The title in the register should match")
 }

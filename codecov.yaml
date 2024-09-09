@@ -6,8 +6,8 @@ coverage:
     patch: no
   ignore:
   - "gen/**"
-  - "**/*.pb.go"
-  - "**/*.pb.validate.go"
-  - "./internal/server/repository/client/**"
-  - "./internal/app/client/**"
-  - "./internal/app/server/**"
+  # - "**/*.pb.go"
+  # - "**/*.pb.validate.go"
+  # - "./internal/server/repository/client/**"
+  # - "./internal/app/client/**"
+  # - "./internal/app/server/**"

@@ -542,7 +542,7 @@ func TestApp_appActionSendFiles(t *testing.T) {
 	assert.Equal(t, "", app.logView.GetText(true))
 }
 
-func TestApp_appActionSendLoginPass(t *testing.T) {
+func TestApp_appActionSendLoginPass_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -571,7 +571,37 @@ func TestApp_appActionSendLoginPass(t *testing.T) {
 	assert.Equal(t, "", app.logView.GetText(true))
 }
 
-func TestApp_appActionSendCard(t *testing.T) {
+func TestApp_appActionSendLoginPass_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Set up the form and input fields
+	form := tview.NewForm()
+	form.AddFormItem(tview.NewInputField().SetText("example.com"))
+	form.AddFormItem(tview.NewInputField().SetText("user"))
+	form.AddFormItem(tview.NewInputField().SetText("password"))
+	app.data.sendLoginPassForm = form
+
+	// Define the behavior of the mock client
+	mockClient.EXPECT().SaveLoginPass("example.com", "user", "password").Return(errors.New("error save login pass")).Times(1)
+
+	// Call the method
+	app.appActionSendLoginPass()
+
+	logLines := app.logView.GetText(true)
+	fmt.Printf("logLines: %v\n", logLines)
+	assert.NotContains(t, logLines, "Error saving login pass")
+}
+
+func TestApp_appActionSendCard_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -597,6 +627,35 @@ func TestApp_appActionSendCard(t *testing.T) {
 
 	// Check if the log view is cleared
 	assert.Equal(t, "", app.logView.GetText(true))
+}
+
+func TestApp_appActionSendCard_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+
+	// Set up the form and input fields
+	form := tview.NewForm()
+	form.AddFormItem(tview.NewInputField().SetText("domain"))
+	form.AddFormItem(tview.NewInputField().SetText("cardnumber"))
+	app.data.sendCardForm = form
+
+	// Define the behavior of the mock client
+	mockClient.EXPECT().SaveCard("domain", "cardnumber").Return(nil).Times(1)
+
+	// Call the method
+	app.appActionSendCard()
+
+	logLines := app.logView.GetText(true)
+	fmt.Printf("logLines: %v\n", logLines)
+	assert.NotContains(t, logLines, "Error saving card")
 }
 
 func TestApp_checkInputCardField(t *testing.T) {
@@ -854,4 +913,126 @@ func TestApp_actionSwitchToMainWithClear_Log(t *testing.T) {
 
 	logLines := app.logView.GetText(true)
 	assert.Contains(t, logLines, "SwitchToPage main with clear")
+}
+
+func TestApp_appActionQuit_Log(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	app.appActionQuit()
+
+	logLines := app.logView.GetText(true)
+	assert.Contains(t, logLines, "Switch stop app")
+}
+
+func TestApp_appActionLoadFiles_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	mockData := []model.FileItem{
+		{Name: "file1", Desc: "description1", Hash: "hash1"},
+		{Name: "file2", Desc: "description2", Hash: "hash2"},
+	}
+
+	mockClient.EXPECT().GetFileList().Return(mockData, nil)
+
+	app.appActionLoadFiles()
+
+	logLines := app.logView.GetText(true)
+	fmt.Printf("logLines: %v\n", logLines)
+	assert.Contains(t, logLines, "ActionLoadFiles: Files loaded")
+}
+
+func TestApp_appActionLoadFiles_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	mockClient.EXPECT().GetFileList().Return(nil, errors.New("fail load files"))
+
+	app.appActionLoadFiles()
+
+	logLines := app.logView.GetText(true)
+	fmt.Printf("logLines: %v\n", logLines)
+	assert.NotContains(t, logLines, "ActionLoadFiles: Files loaded")
+}
+
+func TestApp_appActionLoadData_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	mockData := []model.Data{
+		{ID: 1, Title: "data1", Type: "type1", Card: "card1", Login: "login1", Password: "password1"},
+		{ID: 2, Title: "data2", Type: "type2", Card: "card2", Login: "login2", Password: "password2"},
+	}
+
+	mockClient.EXPECT().GetDataList().Return(mockData, nil)
+
+	app.appActionLoadData()
+
+	logLines := app.logView.GetText(true)
+	fmt.Printf("logLines: %v\n", logLines)
+	assert.Contains(t, logLines, "ActionLoadData: Data loaded")
+}
+
+func TestApp_appActionLoadData_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Создаем mock клиента
+	mockClient := mocks.NewMockGRPCClientInterface(ctrl)
+
+	app := NewEmptyApp()
+	app.client = mockClient
+	app.storage = client.NewMemStorage()
+	app.log = logrus.New()
+	app.log.SetOutput(app.logView)
+	app.log.SetLevel(logrus.TraceLevel)
+
+	mockClient.EXPECT().GetDataList().Return(nil, errors.New("fail load data"))
+
+	app.appActionLoadData()
+
+	logLines := app.logView.GetText(true)
+	fmt.Printf("logLines: %v\n", logLines)
+	assert.NotContains(t, logLines, "ActionLoadData: Data loaded")
 }

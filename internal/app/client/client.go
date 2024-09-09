@@ -186,6 +186,7 @@ func (app *App) actionSwitchToMainWithClear() {
 
 func (app *App) appActionQuit() {
 	app.tapp.Stop()
+	app.log.Trace("Switch stop app")
 }
 
 func (app *App) appActionLoadFiles() {
@@ -193,6 +194,8 @@ func (app *App) appActionLoadFiles() {
 	err := app.loadFiles()
 	if err != nil {
 		app.log.Info("Error loading data: ", err)
+	} else {
+		app.log.Trace("ActionLoadFiles: Files loaded")
 	}
 }
 
@@ -201,6 +204,8 @@ func (app *App) appActionLoadData() {
 	err := app.loadData()
 	if err != nil {
 		app.log.Info("Error loading data: ", err)
+	} else {
+		app.log.Trace("ActionLoadData: Data loaded")
 	}
 }
 
@@ -233,7 +238,7 @@ func (app *App) appActionSendLoginPass() {
 	app.log.Info(fmt.Printf("Login: %s, Password: %s\n, Domain: %s\n", login, "*****", domain))
 
 	if err := app.client.SaveLoginPass(domain, login, password); err != nil {
-		app.log.Info(fmt.Println("Error saveing login pass:", err))
+		app.log.Info(fmt.Println("Error saving login pass:", err))
 	}
 }
 
@@ -243,7 +248,7 @@ func (app *App) appActionSendCard() {
 
 	app.log.Info(fmt.Printf("Title: %s, Card: %s\n", domain, card))
 	if err := app.client.SaveCard(domain, card); err != nil {
-		app.log.Info(fmt.Println("Error saveing login pass:", err))
+		app.log.Info(fmt.Println("Error saving card:", err))
 	}
 }
 
@@ -404,10 +409,7 @@ func (app *App) updateDatalistPage(data []model.Data) {
 
 	list := tview.NewList()
 	// Создание кнопки "Назад"
-	list.AddItem("Назад", "", 'q', func() {
-		app.logView.Clear()
-		app.pages.SwitchToPage("datalist")
-	})
+	list.AddItem("Back", "", 'q', app.actionSwitchToDataList)
 
 	// Заполнение таблицы данными
 	for _, item := range data {
@@ -441,10 +443,7 @@ func (app *App) updateFileDatalistPage(data []model.FileItem) {
 
 	list := tview.NewList()
 	// Создание кнопки "Назад"
-	list.AddItem("Назад", "", 'q', func() {
-		app.logView.Clear()
-		app.pages.SwitchToPage("datalist")
-	})
+	list.AddItem("Back", "", 'q', app.actionSwitchToDataList)
 
 	// Заполнение таблицы данными
 	for _, item := range data {

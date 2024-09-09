@@ -1,0 +1,73 @@
+name: Build binarys
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get clean
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev pkg-config
+
+      - name: Check dependencies
+        run: |
+          pkg-config --cflags gtk+-3.0
+
+      - name: Build Linux Binary
+        run: |
+          mkdir -p ./bin/linux
+          go build -o ./bin/linux/datakeeper ./cmd/client/main.go
+          go build -o ./bin/linux/datakeeper-server ./cmd/server/main.go
+      - name: Upload Linux Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: ./bin/linux
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build Windows Binary
+        run: |
+          mkdir -p ./bin/win
+          go build -o ./bin/win/datakeeper.exe ./cmd/client/main.go
+
+      - name: Upload Windows Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries
+          path: ./bin/win
+    
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
+      - name: Build MacOS Binary
+        run: |
+          mkdir -p ./bin/mac
+          go build -o ./bin/mac/datakeeper ./cmd/client/main.go
+      - name: Upload MacOS Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-binaries
+          path: ./bin/mac

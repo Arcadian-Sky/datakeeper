@@ -1,13 +1,16 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
+	"github.com/Arcadian-Sky/datakkeeper/internal/settings"
 	"github.com/Arcadian-Sky/datakkeeper/mocks"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -150,4 +153,65 @@ func TestSetDBPG(t *testing.T) {
 
 	// Check if DB is set correctly
 	assert.Equal(t, db, app.DBPG)
+}
+
+func TestApp_SetStorage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStorage := mocks.NewMockMinioClient(ctrl)
+
+	ap := &App{}
+
+	ap.SetStorage(mockStorage)
+
+	assert.Equal(t, mockStorage, ap.Storage, "Storage was not set correctly")
+}
+
+func TestApp_SetFlags(t *testing.T) {
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+
+	flags := &settings.InitedFlags{
+		Endpoint: "test-flag",
+	}
+
+	ap := &App{
+		Logger: logger,
+	}
+
+	hook := test.NewLocal(logger)
+
+	ap.SetFlags(flags)
+
+	assert.Equal(t, flags, ap.Flags, "Flags were not set correctly")
+
+	entries := hook.AllEntries()
+	assert.Len(t, entries, 1, "Expected one log entry")
+	assert.Contains(t, entries[0].Message, "parsed", "Log message does not contain 'parsed'")
+	assert.Contains(t, entries[0].Message, "test-flag", "Log message does not contain 'test-flag'")
+}
+
+func TestNewConnectToMinIO_Error(t *testing.T) {
+	logg := logrus.New()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// mockMinioClient := mocks.NewMockMinioClient(ctrl)
+	// mockMinioClient.EXPECT().ListBuckets(gomock.Any()).Return(nil, nil).Times(1)
+
+	// Settings for MinIO
+	storageSettings := settings.Storage{
+		Endpoint:    "localhost:9000000",
+		AccessKeyID: "testAccessKey",
+		Secret:      "testSecret",
+	}
+
+	ctx := context.Background()
+
+	got, err := NewСonnectToMinIO(ctx, storageSettings, logg)
+
+	assert.Error(t, err)
+	assert.Nil(t, got)
 }

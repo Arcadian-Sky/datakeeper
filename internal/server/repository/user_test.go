@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/Arcadian-Sky/datakkeeper/internal/model"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -175,6 +177,104 @@ func TestUserRepo_Auth(t *testing.T) {
 				if err := mock.ExpectationsWereMet(); err != nil {
 					t.Errorf("there were unfulfilled expectations: %s", err)
 				}
+			}
+		})
+	}
+}
+
+func TestUserRepo_Auth2(t *testing.T) {
+	type args struct {
+		ctx  context.Context
+		user *model.User
+	}
+	logg := logrus.New()
+	tests := []struct {
+		name    string
+		args    args
+		want    *model.User
+		wantErr bool
+		mock    func(mock sqlmock.Sqlmock)
+	}{
+		{
+			name: "Successful Authentication",
+			args: args{
+				ctx:  context.Background(),
+				user: &model.User{Login: "existinguser", Password: "password123"},
+			},
+			want:    &model.User{ID: 1, Login: "existinguser"},
+			wantErr: false,
+			mock: func(mock sqlmock.Sqlmock) {
+				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+				mock.ExpectQuery(`SELECT id, password FROM "user" WHERE login=\$1`).
+					WithArgs("existinguser").
+					WillReturnRows(sqlmock.NewRows([]string{"id", "password"}).AddRow(1, hashedPassword))
+			},
+		},
+		{
+			name: "Invalid Credentials - No Rows",
+			args: args{
+				ctx:  context.Background(),
+				user: &model.User{Login: "wronguser", Password: "wrongpass"},
+			},
+			want:    &model.User{},
+			wantErr: true,
+			mock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(`SELECT id, password FROM "user" WHERE login=\$1`).
+					WithArgs("wronguser").
+					WillReturnError(sql.ErrNoRows)
+			},
+		},
+		{
+			name: "Invalid Credentials - Password Mismatch",
+			args: args{
+				ctx:  context.Background(),
+				user: &model.User{Login: "existinguser", Password: "wrongpassword"},
+			},
+			want:    &model.User{Login: "existinguser"},
+			wantErr: true,
+			mock: func(mock sqlmock.Sqlmock) {
+				hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+				mock.ExpectQuery(`SELECT id, password FROM "user" WHERE login=\$1`).
+					WithArgs("existinguser").
+					WillReturnRows(sqlmock.NewRows([]string{"id", "password"}).AddRow(1, hashedPassword))
+			},
+		},
+		{
+			name: "Database Error",
+			args: args{
+				ctx:  context.Background(),
+				user: &model.User{Login: "existinguser", Password: "password123"},
+			},
+			want:    &model.User{},
+			wantErr: true,
+			mock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(`SELECT id, password FROM "user" WHERE login=\$1`).
+					WithArgs("existinguser").
+					WillReturnError(errors.New("database error"))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			assert.NoError(t, err)
+			defer db.Close()
+
+			tt.mock(mock)
+
+			r := &UserRepo{db: db, log: logg}
+			got, err := r.Auth(tt.args.ctx, tt.args.user)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UserRepo.Auth() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				assert.Equal(t, tt.want.ID, got.ID)
+				assert.Equal(t, tt.want.Login, got.Login)
+			}
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}

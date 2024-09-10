@@ -622,7 +622,7 @@ func TestFileRepo_UploadFile(t *testing.T) {
 			},
 			args: args{
 				ctx:        &ctx,
-				user:       &model.User{ID: 0}, // Пользователь с ID = 0
+				user:       &model.User{ID: 0},
 				objectName: "testfile.txt",
 				file:       createTestFile(t, "testfile.txt"),
 			},

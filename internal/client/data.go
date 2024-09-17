@@ -9,6 +9,8 @@ import (
 	"github.com/Arcadian-Sky/datakkeeper/internal/model"
 )
 
+var period time.Duration = 5 * time.Second
+
 func (gc *GRPCClient) GetDataList() ([]model.Data, error) {
 	var data []model.Data
 	if gc.Data == nil {
@@ -16,7 +18,7 @@ func (gc *GRPCClient) GetDataList() ([]model.Data, error) {
 	}
 
 	// Создаем контекст с таймаутом для запроса
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), period)
 	defer cancel()
 	req := &pbsrv.ListDataRequest{}
 	// Отправляем запрос на сервер
@@ -46,7 +48,7 @@ func (gc *GRPCClient) SaveLoginPass(domain, login, pass string) error {
 		return fmt.Errorf("GRPC client is not initialized")
 	}
 	// Создаем контекст с таймаутом для запроса
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), period)
 	defer cancel()
 	res, err := gc.Data.SaveData(ctx, &pbsrv.SaveDataRequest{
 		Data: &pbsrv.Data{
@@ -73,7 +75,7 @@ func (gc *GRPCClient) SaveCard(title, card string) error {
 	}
 
 	// Создаем контекст с таймаутом для запроса
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), period)
 	defer cancel()
 	res, err := gc.Data.SaveData(ctx, &pbsrv.SaveDataRequest{
 		Data: &pbsrv.Data{
@@ -94,7 +96,7 @@ func (gc *GRPCClient) SaveCard(title, card string) error {
 
 func (gc *GRPCClient) Delete(id int64) error {
 	// Создаем контекст с таймаутом для запроса
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), period)
 	defer cancel()
 
 	req := &pbsrv.DeleteDataRequest{

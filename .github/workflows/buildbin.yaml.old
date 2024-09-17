@@ -37,12 +37,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build Windows Binary
         run: |
           mkdir -p ./bin/win
-          go build -o ./bin/win/datakeeper.exe ./cmd/client/main.go
+          go build -o ./bin/win/datakeeper$(go env GOEXE) ./cmd/client/main.go
 
       - name: Upload Windows Binaries
         uses: actions/upload-artifact@v4
@@ -55,7 +55,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v4

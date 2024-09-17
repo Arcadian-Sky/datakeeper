@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package proto.api.service.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "internal/service/data";
+
+// Enum для описания типов данных
+enum DataType {
+  DATA_TYPE_UNSPECIFIED = 0; // Произвольные текстовые данные
+  DATA_TYPE_TYPE_BINARY = 1; // Произвольные бинарные данные
+  DATA_TYPE_TYPE_LOGIN_PASSWORD = 2; // Пары логин/пароль
+  DATA_TYPE_TYPE_CREDIT_CARD = 3; // Данные банковских карт
+}
+
+message Data {
+  string title = 1;
+  DataType type = 2;
+  string login = 3;
+  string password = 4;
+  string card = 5;
+  int64 id = 6;
+}
+
+message FileItem {
+  string name = 1;
+  string key = 2;
+}
+
+message GetFileRequest {
+  string name = 1;
+}
+
+// Мписок файлов
+message ListFileRequest {}
+message ListFileResponse {
+  repeated FileItem fileitem = 1;
+}
+
+// Загрузка файла
+// Сообщение, представляющее собой часть файла
+message FileChunk {
+  bytes data = 1; // Содержимое файла
+  string filename = 2; // Имя файла (передается один раз в начале)
+}
+
+// Команда удаления файла
+message DeleteFileRequest {
+  string filename = 1;
+}
+
+// Статус ответа - загрузки/сохранения/удаления
+message UploadStatus {
+  bool success = 1;
+  string message = 2;
+}
+
+// Сохранение
+message SaveDataRequest {
+  Data data = 1;
+}
+
+// Получение
+message GetDataRequest {
+  int64 dataid = 1;
+}
+message GetDataResponse {
+  Data data = 1;
+}
+
+// Список
+message ListDataRequest {
+  DataType type = 1;
+}
+message ListDataResponse {
+  repeated Data data = 1;
+}
+
+// Удаление
+message DeleteDataRequest {
+  int64 dataid = 1;
+}
+
+// Определение gRPC-сервиса для управления данными
+service DataKeeperService {
+  // Хранение новых данных на сервере (кроме файлов)
+  rpc SaveData(SaveDataRequest) returns (UploadStatus) {}
+  rpc GetDataList(ListDataRequest) returns (ListDataResponse) {}
+  rpc DeleteData(DeleteDataRequest) returns (UploadStatus) {}
+
+  // Отправка файлов на сервер
+  rpc GetFileList(ListFileRequest) returns (ListFileResponse) {}
+  rpc UploadFile(stream FileChunk) returns (UploadStatus) {}
+  rpc GetFile(GetFileRequest) returns (stream FileChunk) {}
+  rpc DeleteFile(DeleteFileRequest) returns (UploadStatus) {}
+}

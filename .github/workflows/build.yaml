@@ -1,0 +1,55 @@
+name: Build Client
+
+on:
+    pull_request:
+    push:
+        branches:
+        - main
+#   push:
+#     branches:
+#       - main
+#   pull_request:
+#     branches:
+#       - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest] 
+        go-version: [1.22]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get clean
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev pkg-config
+
+    - name: Check dependencies
+      if: runner.os == 'Linux'
+      run: |
+        pkg-config --cflags gtk+-3.0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Install dependencies
+      run: go mod tidy
+
+    - name: Build ${{ matrix.os }} Binary
+      run: go build -o ./bin/client ./cmd/client/main.go
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: client-${{ matrix.os }}-${{ matrix.go-version }}
+        path: ./bin/client

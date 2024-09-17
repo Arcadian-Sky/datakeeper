@@ -1,10 +1,12 @@
 ### Go ###
 # Binaries for programs and plugins
+*.env
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+*.txt
 
 # Test binary, built with `go test -c`
 *.test
@@ -16,6 +18,7 @@
 /gen/proto/*.go
 
 ### Go Patch ###
+/docker/volume/
 /vendor/
 /Godeps/
 

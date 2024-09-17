@@ -1,0 +1,19 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      # - "${MINIO_HOST_PORT:?Please configure MINIO_HOST_PORT in the .env file}:${MINIO_HOST_PORT:?Please configure MINIO_HOST_PORT in the .env file}"
+      - "9000:9000" # Port for MinIO API
+      - "9001:9001" # Port for MinIO Console
+    volumes:
+      # - minio_data:/data
+      - ./etc/minio/init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
+      - ./volume/minio:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:?Please configure MINIO_ROOT_USER in the .env file}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:?Please configure MINIO_ROOT_PASSWORD in the .env file}
+    # command: server /data
+    command: server /data --console-address ":9001" # Start MinIO server and expose console on port 9001
+    networks:
+      - datakeeper-network

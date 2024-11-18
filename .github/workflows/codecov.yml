@@ -25,7 +25,7 @@ jobs:
         # run: go test ./internal/... -timeout 30s -race -coverprofile=coverage.out -covermode=atomic
         run: go test ./internal/... -coverpkg=./internal/... -coverprofile=coverage.out -covermode=atomic
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
